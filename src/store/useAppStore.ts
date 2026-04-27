@@ -1,28 +1,40 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+// ── Shared types ──────────────────────────────────────────────────────────────
+
+export interface StockItem {
+  code: string
+  name: string
+}
+
 export interface Stock {
   id: number
+  code: string
   name: string
-  rawText: string
+  monthlyReturns: number[]
+  dailyReturns: number[]
   weight: number
 }
 
-interface CompareStock {
+export interface CompareStock {
+  stockCode: string
   name: string
-  rawText: string
+  monthlyReturns: number[]
+  dailyReturns: number[]
 }
 
-interface AppStore {
-  // Individual page
-  individualRawText: string
-  setIndividualRawText: (v: string) => void
-  clearIndividual: () => void
+// ── Store interface ───────────────────────────────────────────────────────────
 
-  // Hurst page
-  hurstRawText: string
-  setHurstRawText: (v: string) => void
-  clearHurst: () => void
+interface AppStore {
+  // Global stock list (fetched once on app init)
+  stockList: StockItem[]
+  setStockList: (list: StockItem[]) => void
+
+  // Individual analysis page
+  individualStockCode: string
+  setIndividualStockCode: (code: string) => void
+  clearIndividual: () => void
 
   // Portfolio page
   stocks: Stock[]
@@ -37,23 +49,33 @@ interface AppStore {
   clearCompare: () => void
 }
 
+// ── Defaults ──────────────────────────────────────────────────────────────────
+
 const DEFAULT_STOCKS: Stock[] = [
-  { id: 1, name: '股票 A', rawText: '', weight: 50 },
-  { id: 2, name: '股票 B', rawText: '', weight: 50 },
+  { id: 1, code: '', name: '股票 A', monthlyReturns: [], dailyReturns: [], weight: 50 },
+  { id: 2, code: '', name: '股票 B', monthlyReturns: [], dailyReturns: [], weight: 50 },
 ]
+
+const DEFAULT_COMPARE_STOCK: CompareStock = {
+  stockCode: '',
+  name: '',
+  monthlyReturns: [],
+  dailyReturns: [],
+}
+
+// ── Store ─────────────────────────────────────────────────────────────────────
 
 export const useAppStore = create<AppStore>()(
   persist(
     (set) => ({
-      // Individual
-      individualRawText: '',
-      setIndividualRawText: (v) => set({ individualRawText: v }),
-      clearIndividual: () => set({ individualRawText: '' }),
+      // Stock list
+      stockList: [],
+      setStockList: (list) => set({ stockList: list }),
 
-      // Hurst
-      hurstRawText: '',
-      setHurstRawText: (v) => set({ hurstRawText: v }),
-      clearHurst: () => set({ hurstRawText: '' }),
+      // Individual
+      individualStockCode: '',
+      setIndividualStockCode: (code) => set({ individualStockCode: code }),
+      clearIndividual: () => set({ individualStockCode: '' }),
 
       // Portfolio
       stocks: DEFAULT_STOCKS,
@@ -61,23 +83,22 @@ export const useAppStore = create<AppStore>()(
       clearPortfolio: () => set({ stocks: DEFAULT_STOCKS }),
 
       // Compare
-      compareA: { name: '股票 A', rawText: '' },
-      compareB: { name: '股票 B', rawText: '' },
+      compareA: { ...DEFAULT_COMPARE_STOCK },
+      compareB: { ...DEFAULT_COMPARE_STOCK },
       setCompareA: (v) => set({ compareA: v }),
       setCompareB: (v) => set({ compareB: v }),
-      clearCompare: () => set({
-        compareA: { name: '股票 A', rawText: '' },
-        compareB: { name: '股票 B', rawText: '' },
-      }),
+      clearCompare: () =>
+        set({
+          compareA: { ...DEFAULT_COMPARE_STOCK },
+          compareB: { ...DEFAULT_COMPARE_STOCK },
+        }),
     }),
     {
-      name: 'rmh-app-v2',
-      // Catch schema version conflicts silently
+      name: 'rmh-app-v3',
       onRehydrateStorage: () => (state, error) => {
         if (error) {
-          console.warn('[rmh-app-v2] Failed to rehydrate store, resetting.', error)
+          console.warn('[rmh-app-v3] Failed to rehydrate store, resetting.', error)
           state?.clearIndividual()
-          state?.clearHurst()
           state?.clearPortfolio()
           state?.clearCompare()
         }

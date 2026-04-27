@@ -4,7 +4,6 @@ const NAV_ITEMS = [
   { to: '/', icon: '🏠', label: '首頁', exact: true },
   { to: '/individual', icon: '📊', label: '個股分析', exact: false },
   { to: '/portfolio', icon: '🗂️', label: '投資組合', exact: false },
-  { to: '/hurst', icon: '〰️', label: 'Hurst 指數', exact: false },
   { to: '/compare', icon: '⚖️', label: '比較分析', exact: false },
 ]
 

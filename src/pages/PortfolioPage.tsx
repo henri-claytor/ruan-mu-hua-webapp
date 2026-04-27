@@ -1,12 +1,15 @@
 import { useRef, useState } from 'react'
+import StockSelector from '../components/StockSelector'
 import ResultCard from '../components/ResultCard'
+import FanChart from '../components/charts/FanChart'
+import VarHistogram from '../components/charts/VarHistogram'
+import HurstLineChart from '../components/charts/HurstLineChart'
 import { calcEV } from '../lib/ev'
 import { calcVaR } from '../lib/var'
 import { runMonteCarlo } from '../lib/montecarlo'
+import { calcHurst } from '../lib/hurst'
 import { calcPortfolioReturns } from '../lib/portfolio'
-import { parseReturns } from '../lib/utils'
-import FanChart from '../components/charts/FanChart'
-import VarHistogram from '../components/charts/VarHistogram'
+import { fetchMonthlyReturns, fetchDailyReturns } from '../lib/api'
 import { useAppStore, type Stock } from '../store/useAppStore'
 import {
   buildPortfolioSummary,
@@ -19,9 +22,6 @@ let nextId = 10
 
 function fmt(n: number, digits = 2): string {
   return (n * 100).toFixed(digits) + '%'
-}
-function fmtWan(n: number): string {
-  return (n / 10000).toFixed(1) + ' 萬'
 }
 
 function CopyButton({ onCopy, disabled }: { onCopy: () => Promise<void>; disabled: boolean }) {
@@ -49,12 +49,17 @@ export default function PortfolioPage() {
   const clearPortfolio = useAppStore((s) => s.clearPortfolio)
   const resultRef = useRef<HTMLDivElement>(null)
 
+  // Track which stock IDs are currently loading
+  const [loadingIds, setLoadingIds] = useState<Set<number>>(new Set())
+
   function addStock() {
     if (stocks.length >= 10) return
     const newStock: Stock = {
       id: nextId++,
+      code: '',
       name: `股票 ${String.fromCharCode(64 + stocks.length + 1)}`,
-      rawText: '',
+      monthlyReturns: [],
+      dailyReturns: [],
       weight: 0,
     }
     setStocks([...stocks, newStock])
@@ -65,23 +70,79 @@ export default function PortfolioPage() {
     setStocks(stocks.filter((s) => s.id !== id))
   }
 
-  function updateStock(id: number, field: keyof Stock, value: string | number) {
-    setStocks(stocks.map((s) => (s.id === id ? { ...s, [field]: value } : s)))
+  function updateWeight(id: number, weight: number) {
+    setStocks(stocks.map((s) => (s.id === id ? { ...s, weight } : s)))
+  }
+
+  async function handleStockSelect(id: number, code: string, name: string) {
+    // Update code/name immediately, clear old returns
+    setStocks(
+      stocks.map((s) =>
+        s.id === id ? { ...s, code, name, monthlyReturns: [], dailyReturns: [] } : s
+      )
+    )
+    setLoadingIds((prev) => new Set(prev).add(id))
+
+    try {
+      const [monthly, daily] = await Promise.all([
+        fetchMonthlyReturns(code),
+        fetchDailyReturns(code).catch(() => [] as number[]),
+      ])
+      setStocks(
+        stocks.map((s) =>
+          s.id === id ? { ...s, code, name, monthlyReturns: monthly, dailyReturns: daily } : s
+        )
+      )
+    } catch (err) {
+      console.error(`Failed to fetch returns for ${code}:`, err)
+    } finally {
+      setLoadingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+    }
   }
 
   const totalWeight = stocks.reduce((a, s) => a + Number(s.weight), 0)
   const weightValid = Math.abs(totalWeight - 100) < 0.01
 
-  const stockReturns = stocks.map((s) => parseReturns(s.rawText))
+  const hasData = stocks.every((s) => s.monthlyReturns.length >= 10)
+  const isAnyLoading = loadingIds.size > 0
+
+  // Compute portfolio returns (monthly always available for EV+MC)
   const weights = stocks.map((s) => Number(s.weight) / 100)
-  const hasData = stockReturns.every((r) => r.length >= 10)
+  const stockMonthly = stocks.map((s) => s.monthlyReturns)
+  const portMonthly = hasData && weightValid ? calcPortfolioReturns(stockMonthly, weights) : []
 
-  const portReturns = hasData && weightValid ? calcPortfolioReturns(stockReturns, weights) : []
-  const evResult = portReturns.length > 0 ? calcEV(portReturns) : null
-  const varResult = portReturns.length > 0 ? calcVaR(portReturns) : null
-  const mcResult = portReturns.length > 0 ? runMonteCarlo(portReturns, 100) : null
+  // Dual-frequency for VaR + Hurst: all stocks need daily >= 252
+  const useDailyFreq = stocks.every((s) => s.dailyReturns.length >= 252)
+  const stocksLackingDaily = useDailyFreq
+    ? []
+    : stocks.filter((s) => s.code && s.dailyReturns.length < 252).map((s) => s.name || s.code)
 
-  const ready = hasData && weightValid && portReturns.length > 0
+  const stockDailyAligned = (() => {
+    if (!useDailyFreq || !hasData) return []
+    const minLen = Math.min(...stocks.map((s) => s.dailyReturns.length))
+    return stocks.map((s) => s.dailyReturns.slice(-minLen))
+  })()
+
+  const portForRisk = useDailyFreq && stockDailyAligned.length > 0
+    ? calcPortfolioReturns(stockDailyAligned, weights)
+    : portMonthly
+
+  const freqLabel = useDailyFreq
+    ? `日報酬 ${stockDailyAligned[0]?.length ?? 0} 筆`
+    : `月報酬 ${portMonthly.length} 筆${stocksLackingDaily.length > 0 ? '（部分股票日頻不足）' : ''}`
+
+  const evResult = portMonthly.length > 0 ? calcEV(portMonthly) : null
+  const varResult = portForRisk.length > 0 ? calcVaR(portForRisk) : null
+  const mcResult = portMonthly.length > 0 ? runMonteCarlo(portMonthly, 100) : null
+  const hurstResult = portForRisk.length >= 10 ? calcHurst(portForRisk) : null
+
+  const ready = hasData && weightValid && portMonthly.length > 0 && !isAnyLoading
+
+  const selectedCodes = stocks.map((s) => s.code).filter(Boolean)
 
   async function handleCopy() {
     if (!evResult || !varResult || !mcResult) return
@@ -98,14 +159,19 @@ export default function PortfolioPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-h1 font-bold text-main">投資組合分析</h1>
-          <p className="text-small text-dim mt-0.5">輸入多支股票月報酬率與比重，計算加權組合 EV、VaR 與蒙地卡羅模擬</p>
+          <p className="text-small text-dim mt-0.5">
+            選取多支股票並設定比重，計算加權組合 EV、VaR、蒙地卡羅與 Hurst 指數
+          </p>
         </div>
-        <button onClick={clearPortfolio} className="text-small text-red-500 hover:text-red-700 underline">
+        <button
+          onClick={clearPortfolio}
+          className="text-small text-red-500 hover:text-red-700 underline"
+        >
           清除資料
         </button>
       </div>
 
-      {/* 結果區 */}
+      {/* ── Results ── */}
       {ready && evResult && varResult && mcResult && (
         <div ref={resultRef} className="space-y-4">
           <div className="flex gap-2 justify-end">
@@ -133,29 +199,32 @@ export default function PortfolioPage() {
 
           {/* VaR */}
           <div className="bg-surface rounded-2xl border border-base p-6 space-y-4">
-            <h2 className="text-h2 font-semibold text-main">風險值（VaR）</h2>
+            <div>
+              <h2 className="text-h2 font-semibold text-main">風險值（VaR）</h2>
+              <p className="text-caption text-faint mt-0.5">使用{freqLabel}</p>
+            </div>
             <div className="flex flex-col md:flex-row gap-4">
               <div className="grid grid-cols-2 gap-3 flex-shrink-0">
                 <ResultCard
                   title="VaR 95%"
                   value={fmt(varResult.var95)}
-                  subtitle={`有 5% 機率單月虧損超過 ${fmt(Math.abs(varResult.var95))}`}
+                  subtitle={`有 5% 機率虧損超過 ${fmt(Math.abs(varResult.var95))}`}
                   color="yellow"
                 />
                 <ResultCard
                   title="VaR 99%"
                   value={fmt(varResult.var99)}
-                  subtitle={`有 1% 機率單月虧損超過 ${fmt(Math.abs(varResult.var99))}`}
+                  subtitle={`有 1% 機率虧損超過 ${fmt(Math.abs(varResult.var99))}`}
                   color="red"
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <VarHistogram returns={portReturns} var95={varResult.var95} var99={varResult.var99} />
+                <VarHistogram returns={portForRisk} var95={varResult.var95} var99={varResult.var99} />
               </div>
             </div>
           </div>
 
-          {/* 蒙地卡羅 */}
+          {/* Monte Carlo */}
           <div className="bg-surface rounded-2xl border border-base p-6 space-y-4">
             <h2 className="text-h2 font-semibold text-main">蒙地卡羅模擬（初始 100 萬）</h2>
             <div className="grid grid-cols-3 gap-3">
@@ -169,15 +238,15 @@ export default function PortfolioPage() {
                   <div className="space-y-1">
                     <div className="flex justify-between text-small">
                       <span className="text-green-700 font-medium">P95</span>
-                      <span className="text-main">{fmtWan(data.p95)}</span>
+                      <span className="text-main">{(data.p95 / 10000).toFixed(1)} 萬</span>
                     </div>
                     <div className="flex justify-between text-small">
                       <span className="text-blue-600 font-medium">P50</span>
-                      <span className="text-main">{fmtWan(data.p50)}</span>
+                      <span className="text-main">{(data.p50 / 10000).toFixed(1)} 萬</span>
                     </div>
                     <div className="flex justify-between text-small">
                       <span className="text-red-600 font-medium">P5</span>
-                      <span className="text-main">{fmtWan(data.p5)}</span>
+                      <span className="text-main">{(data.p5 / 10000).toFixed(1)} 萬</span>
                     </div>
                   </div>
                 </div>
@@ -189,21 +258,51 @@ export default function PortfolioPage() {
                 <ResultCard title="μ（月均報酬）" value={fmt(mcResult.mu, 4)} />
                 <ResultCard title="σ（月報酬標準差）" value={fmt(mcResult.sigma, 4)} />
                 <ResultCard title="模擬路徑數" value="100 條" />
-                <ResultCard title="組合月報酬筆數" value={`${portReturns.length} 筆`} />
+                <ResultCard title="組合月報酬筆數" value={`${portMonthly.length} 筆`} />
               </div>
             </div>
           </div>
+
+          {/* Hurst */}
+          {hurstResult && (
+            <div className="bg-surface rounded-2xl border border-base p-6 space-y-4">
+              <div>
+                <h2 className="text-h2 font-semibold text-main">Hurst 指數分析（組合）</h2>
+                <p className="text-caption text-faint mt-0.5">使用{freqLabel}</p>
+                {stocksLackingDaily.length > 0 && (
+                  <p className="text-caption text-amber-700 mt-0.5">
+                    降級月頻：{stocksLackingDaily.join('、')} 日報酬不足 252 筆
+                  </p>
+                )}
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <ResultCard
+                  title="Hurst H 值"
+                  value={hurstResult.h.toFixed(4)}
+                  color={hurstResult.h > 0.6 ? 'green' : hurstResult.h < 0.4 ? 'red' : 'blue'}
+                  large
+                />
+                <ResultCard title="解讀" value={hurstResult.interpretation} />
+                <ResultCard title="R（範圍）" value={hurstResult.r.toFixed(6)} />
+                <ResultCard title="S（標準差）" value={hurstResult.s.toFixed(6)} />
+              </div>
+              <HurstLineChart
+                cumDeviations={hurstResult.cumDeviations}
+                subtitle={freqLabel}
+              />
+            </div>
+          )}
         </div>
       )}
 
-      {/* 股票輸入區塊 */}
+      {/* ── Stock input section ── */}
       <div className="bg-surface rounded-2xl border border-base p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-h2 font-semibold text-main">股票數據輸入</h2>
+          <h2 className="text-h2 font-semibold text-main">股票選取</h2>
           <div className="flex items-center gap-3">
             <span className={`text-small font-medium ${weightValid ? 'text-green-700' : 'text-red-600'}`}>
               比重合計：{totalWeight.toFixed(1)}%
-              {!weightValid && `（差 ${(100 - totalWeight).toFixed(1)}%）`}
+              {!weightValid && ` （差 ${(100 - totalWeight).toFixed(1)}%）`}
             </span>
             <button
               onClick={addStock}
@@ -216,59 +315,66 @@ export default function PortfolioPage() {
           </div>
         </div>
 
-        <div className="space-y-4">
-          {stocks.map((stock) => (
-            <div key={stock.id} className="border border-base rounded-xl p-4 space-y-3">
-              <div className="flex items-center gap-3">
-                <input
-                  className="flex-1 px-3 py-1.5 border border-base rounded-lg text-small text-main bg-surface
-                             focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="股票名稱"
-                  value={stock.name}
-                  onChange={(e) => updateStock(stock.id, 'name', e.target.value)}
-                />
-                <div className="flex items-center gap-2">
-                  <label className="text-small text-dim whitespace-nowrap">比重</label>
-                  <input
-                    type="number"
-                    className="w-20 px-2 py-1.5 border border-base rounded-lg text-small text-main bg-surface
-                               focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="50"
-                    value={stock.weight}
-                    onChange={(e) => updateStock(stock.id, 'weight', Number(e.target.value))}
-                  />
-                  <span className="text-small text-dim">%</span>
+        <div className="space-y-3">
+          {stocks.map((stock) => {
+            const isLoading = loadingIds.has(stock.id)
+            return (
+              <div key={stock.id} className="border border-base rounded-xl p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <StockSelector
+                      value={stock.code}
+                      onChange={(code, name) => handleStockSelect(stock.id, code, name)}
+                      disabledCodes={selectedCodes.filter((c) => c !== stock.code)}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <label className="text-small text-dim whitespace-nowrap">比重</label>
+                    <input
+                      type="number"
+                      className="w-20 px-2 py-1.5 border border-base rounded-lg text-small text-main bg-surface
+                                 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="50"
+                      value={stock.weight}
+                      onChange={(e) => updateWeight(stock.id, Number(e.target.value))}
+                      disabled={!stock.code || isLoading}
+                    />
+                    <span className="text-small text-dim">%</span>
+                  </div>
+                  <button
+                    onClick={() => removeStock(stock.id)}
+                    disabled={stocks.length <= 2}
+                    className="text-red-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed text-lg leading-none"
+                    title="刪除"
+                  >
+                    ×
+                  </button>
                 </div>
-                <button
-                  onClick={() => removeStock(stock.id)}
-                  disabled={stocks.length <= 2}
-                  className="text-red-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed text-lg leading-none"
-                  title="刪除"
-                >
-                  ×
-                </button>
+
+                {isLoading && (
+                  <p className="text-caption text-blue-600 animate-pulse">⟳ 正在載入報酬數據...</p>
+                )}
+                {!isLoading && stock.code && (
+                  <p className="text-caption text-faint">
+                    月報酬：{stock.monthlyReturns.length} 筆 ／
+                    日報酬：{stock.dailyReturns.length} 筆
+                    {stock.dailyReturns.length > 0 && stock.dailyReturns.length < 252 && (
+                      <span className="text-amber-600">（日頻不足 252 筆，將降級月頻）</span>
+                    )}
+                  </p>
+                )}
               </div>
-              <div>
-                <label className="block text-caption text-faint mb-1">月報酬率（換行、逗號或 Tab 分隔，支援百分比）</label>
-                <textarea
-                  className="w-full h-28 px-3 py-2 border border-base rounded-lg text-caption
-                             font-mono text-main bg-surface focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
-                  placeholder={'0.0412\n-0.0231\n0.0587\n或 3.12%\n-2.31%'}
-                  value={stock.rawText}
-                  onChange={(e) => updateStock(stock.id, 'rawText', e.target.value)}
-                />
-                <p className="text-caption text-faint mt-0.5">
-                  已讀取：{parseReturns(stock.rawText).length} 筆
-                </p>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
-        {!ready && (
+        {!ready && !isAnyLoading && (
           <p className="text-small text-faint">
-            所有股票輸入至少 10 筆數據，且比重合計為 100% 後，計算結果將自動顯示。
+            選取所有股票並設定比重合計 100% 後，分析結果將自動顯示。
           </p>
+        )}
+        {isAnyLoading && (
+          <p className="text-small text-blue-600 animate-pulse">正在載入股票數據，請稍候...</p>
         )}
       </div>
     </div>

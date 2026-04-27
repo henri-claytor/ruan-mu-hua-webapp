@@ -12,9 +12,11 @@ import { TOOLTIP_STYLE, AXIS_TICK_STYLE, CHART_COLORS } from '../../utils/chartS
 
 interface HurstLineChartProps {
   cumDeviations: number[]
+  /** e.g. "日頻 252 筆" or "月頻 120 筆" */
+  subtitle?: string
 }
 
-export default function HurstLineChart({ cumDeviations }: HurstLineChartProps) {
+export default function HurstLineChart({ cumDeviations, subtitle }: HurstLineChartProps) {
   if (cumDeviations.length === 0) return null
 
   const maxX = Math.max(...cumDeviations)
@@ -22,9 +24,13 @@ export default function HurstLineChart({ cumDeviations }: HurstLineChartProps) {
 
   const data = cumDeviations.map((x, i) => ({ month: i + 1, Xt: x }))
 
+  const titleText = subtitle
+    ? `累積偏差序列（Xₜ）— ${subtitle}`
+    : '累積偏差序列（Xₜ）'
+
   return (
     <div>
-      <p className="text-small font-medium text-dim mb-2">累積偏差序列（Xₜ）</p>
+      <p className="text-small font-medium text-dim mb-2">{titleText}</p>
       <ResponsiveContainer width="100%" height={200}>
         <LineChart data={data} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
