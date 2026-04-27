@@ -1,38 +1,80 @@
 import { NavLink } from 'react-router-dom'
 
-const links = [
-  { to: '/', label: '首頁', exact: true },
-  { to: '/individual', label: '個股 EV' },
-  { to: '/portfolio', label: '投資組合' },
-  { to: '/hurst', label: 'Hurst 指數' },
+const NAV_ITEMS = [
+  { to: '/', icon: '🏠', label: '首頁', exact: true },
+  { to: '/individual', icon: '📊', label: '個股分析', exact: false },
+  { to: '/portfolio', icon: '🗂️', label: '投資組合', exact: false },
+  { to: '/hurst', icon: '〰️', label: 'Hurst 指數', exact: false },
+  { to: '/compare', icon: '⚖️', label: '比較分析', exact: false },
 ]
+
+interface NavItemProps {
+  to: string
+  icon: string
+  label: string
+  exact: boolean
+}
+
+function SidebarLink({ to, icon, label, exact }: NavItemProps) {
+  return (
+    <NavLink
+      to={to}
+      end={exact}
+      className={({ isActive }) =>
+        `flex items-center gap-3 px-4 py-2.5 rounded-lg text-body font-medium transition-colors ${
+          isActive
+            ? 'border-l-[3px] border-blue-500 bg-blue-50 text-blue-700 pl-[13px]'
+            : 'text-dim hover:text-main hover:bg-elevated'
+        }`
+      }
+    >
+      <span className="text-base leading-none">{icon}</span>
+      <span>{label}</span>
+    </NavLink>
+  )
+}
+
+function BottomTabLink({ to, icon, label, exact }: NavItemProps) {
+  return (
+    <NavLink
+      to={to}
+      end={exact}
+      className={({ isActive }) =>
+        `flex flex-col items-center gap-0.5 py-2 px-1 flex-1 text-caption font-medium transition-colors ${
+          isActive
+            ? 'border-t-[3px] border-blue-500 text-blue-600'
+            : 'border-t-[3px] border-transparent text-faint'
+        }`
+      }
+    >
+      <span className="text-lg leading-none">{icon}</span>
+      <span>{label}</span>
+    </NavLink>
+  )
+}
 
 export default function NavBar() {
   return (
-    <nav className="bg-white border-b border-gray-200 shadow-sm">
-      <div className="max-w-5xl mx-auto px-4">
-        <div className="flex items-center h-14 gap-1">
-          <span className="font-bold text-gray-900 mr-4 text-sm">
-            📊 財商實戰課
-          </span>
-          {links.map(({ to, label, exact }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={exact}
-              className={({ isActive }) =>
-                `px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                }`
-              }
-            >
-              {label}
-            </NavLink>
-          ))}
+    <>
+      {/* ── Desktop Sidebar (md+) ── */}
+      <aside className="hidden md:flex flex-col fixed left-0 top-0 h-full w-[200px] bg-surface border-r border-base z-40">
+        <div className="px-4 py-5 border-b border-base">
+          <p className="text-h1 font-bold text-main">📈 財商實戰課</p>
+          <p className="text-caption text-faint mt-0.5">阮慕驊課程工具</p>
         </div>
-      </div>
-    </nav>
+        <nav className="flex flex-col gap-1 p-3 flex-1 overflow-y-auto">
+          {NAV_ITEMS.map((item) => (
+            <SidebarLink key={item.to} {...item} />
+          ))}
+        </nav>
+      </aside>
+
+      {/* ── Mobile Bottom Tab Bar (<md) ── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-base z-40 flex">
+        {NAV_ITEMS.map((item) => (
+          <BottomTabLink key={item.to} {...item} />
+        ))}
+      </nav>
+    </>
   )
 }

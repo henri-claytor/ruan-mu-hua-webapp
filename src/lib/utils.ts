@@ -1,24 +1,25 @@
 /**
- * Parse a text input (newline or comma separated) into an array of numbers.
- * Supports both decimal (0.05) and percentage (5%) formats.
+ * Parse a text input (newline, comma, or tab separated) into an array of numbers.
+ * Supports decimal (0.05), percentage (5%), and Tab-separated (from Excel) formats.
+ * Invalid values and header rows are silently filtered out.
  */
 export function parseReturns(text: string): number[] {
+  // Split on newline, comma, or tab
   const raw = text
-    .split(/[\n,\r]+/)
+    .split(/[\n,\r\t]+/)
     .map((s) => s.trim())
     .filter((s) => s !== '')
 
   const result: number[] = []
   for (const s of raw) {
-    // Handle percentage sign
+    const isPercent = s.includes('%')
     const cleaned = s.replace('%', '').trim()
     const n = parseFloat(cleaned)
     if (!isNaN(n)) {
-      // If original value was a percentage string like "5%", keep as 0.05
-      // If original had %, divide by 100; otherwise assume already decimal
-      const val = s.includes('%') ? n / 100 : n
-      result.push(val)
+      // Percentage string like "5%" → 0.05; otherwise assume already decimal
+      result.push(isPercent ? n / 100 : n)
     }
+    // Non-numeric tokens (headers, labels) are silently skipped
   }
   return result
 }

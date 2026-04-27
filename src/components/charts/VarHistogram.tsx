@@ -8,6 +8,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts'
+import { TOOLTIP_STYLE, AXIS_TICK_STYLE, CHART_COLORS } from '../../utils/chartStyle'
 
 interface VarHistogramProps {
   returns: number[]
@@ -37,30 +38,33 @@ export default function VarHistogram({ returns, var95, var99 }: VarHistogramProp
 
   return (
     <div>
-      <p className="text-sm font-medium text-gray-600 mb-2">報酬率分布</p>
+      <p className="text-small font-medium text-dim mb-2">報酬率分布</p>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={buckets} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          <XAxis dataKey="label" tick={{ fontSize: 9 }} interval={2} />
-          <YAxis tick={{ fontSize: 10 }} />
+          <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
+          <XAxis dataKey="label" tick={{ ...AXIS_TICK_STYLE, fontSize: 9 }} interval={2} />
+          <YAxis tick={AXIS_TICK_STYLE} />
           <Tooltip
+            contentStyle={TOOLTIP_STYLE.contentStyle}
+            labelStyle={TOOLTIP_STYLE.labelStyle}
+            itemStyle={TOOLTIP_STYLE.itemStyle}
             labelFormatter={(l) => `報酬率區間 ${l}`}
             formatter={(v: unknown) => [typeof v === 'number' ? v : String(v), '次數']}
           />
-          <Bar dataKey="count" fill="#93c5fd" radius={[2, 2, 0, 0]} />
+          <Bar dataKey="count" fill={CHART_COLORS.bar} radius={[2, 2, 0, 0]} />
           <ReferenceLine
             x={buckets.find((b) => b.x >= var95)?.label ?? ''}
-            stroke="#f97316"
+            stroke={CHART_COLORS.var95}
             strokeWidth={2}
             strokeDasharray="4 2"
-            label={{ value: 'VaR95', fontSize: 9, fill: '#f97316', position: 'top' }}
+            label={{ value: 'VaR95', fontSize: 9, fill: CHART_COLORS.var95, position: 'top' }}
           />
           <ReferenceLine
             x={buckets.find((b) => b.x >= var99)?.label ?? ''}
-            stroke="#dc2626"
+            stroke={CHART_COLORS.var99}
             strokeWidth={2}
             strokeDasharray="4 2"
-            label={{ value: 'VaR99', fontSize: 9, fill: '#dc2626', position: 'top' }}
+            label={{ value: 'VaR99', fontSize: 9, fill: CHART_COLORS.var99, position: 'top' }}
           />
         </BarChart>
       </ResponsiveContainer>

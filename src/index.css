@@ -1,5 +1,26 @@
 @import "tailwindcss";
 
+/* ── iOS Finance Light Theme Design Tokens ── */
+@theme {
+  /* Semantic Colors */
+  --color-app: #F2F2F7;
+  --color-surface: #FFFFFF;
+  --color-elevated: #F9F9F9;
+  --color-base: #C6C6C8;
+  --color-main: #1C1C1E;
+  --color-dim: #6C6C70;
+  --color-faint: #AEAEB2;
+
+  /* Font Size Tokens */
+  --text-display: 2.25rem;   /* 36px — KPI 數字 */
+  --text-h1: 1.125rem;       /* 18px — 頁面標題 */
+  --text-h2: 0.875rem;       /* 14px — 區塊標題 */
+  --text-body: 0.8125rem;    /* 13px — 正文 */
+  --text-small: 0.75rem;     /* 12px — 輔助說明 */
+  --text-label: 0.6875rem;   /* 11px — 標籤 */
+  --text-caption: 0.625rem;  /* 10px — 圖表刻度 */
+}
+
 * {
   box-sizing: border-box;
 }
@@ -7,7 +28,7 @@
 body {
   margin: 0;
   font-family: system-ui, 'Segoe UI', -apple-system, sans-serif;
-  background-color: #f9fafb;
-  color: #111827;
+  background-color: var(--color-app, #F2F2F7);
+  color: var(--color-main, #1C1C1E);
   -webkit-font-smoothing: antialiased;
 }
