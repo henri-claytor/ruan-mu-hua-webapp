@@ -238,15 +238,15 @@ export default function PortfolioPage() {
                   <div className="space-y-1">
                     <div className="flex justify-between text-small">
                       <span className="text-green-700 font-medium">P95</span>
-                      <span className="text-main">{(data.p95 / 10000).toFixed(1)} 萬</span>
+                      <span className="num text-main">{(data.p95 / 10000).toFixed(1)} 萬</span>
                     </div>
                     <div className="flex justify-between text-small">
                       <span className="text-blue-600 font-medium">P50</span>
-                      <span className="text-main">{(data.p50 / 10000).toFixed(1)} 萬</span>
+                      <span className="num text-main">{(data.p50 / 10000).toFixed(1)} 萬</span>
                     </div>
                     <div className="flex justify-between text-small">
                       <span className="text-red-600 font-medium">P5</span>
-                      <span className="text-main">{(data.p5 / 10000).toFixed(1)} 萬</span>
+                      <span className="num text-main">{(data.p5 / 10000).toFixed(1)} 萬</span>
                     </div>
                   </div>
                 </div>
@@ -301,7 +301,7 @@ export default function PortfolioPage() {
           <h2 className="text-h2 font-semibold text-main">股票選取</h2>
           <div className="flex items-center gap-3">
             <span className={`text-small font-medium ${weightValid ? 'text-green-700' : 'text-red-600'}`}>
-              比重合計：{totalWeight.toFixed(1)}%
+              比重合計：<span className="num">{totalWeight.toFixed(1)}%</span>
               {!weightValid && ` （差 ${(100 - totalWeight).toFixed(1)}%）`}
             </span>
             <button

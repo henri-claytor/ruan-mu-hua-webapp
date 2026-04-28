@@ -1,20 +1,21 @@
 import { NavLink } from 'react-router-dom'
+import { Icon } from './icons'
 
 const NAV_ITEMS = [
-  { to: '/', icon: '🏠', label: '首頁', exact: true },
-  { to: '/individual', icon: '📊', label: '個股分析', exact: false },
-  { to: '/portfolio', icon: '🗂️', label: '投資組合', exact: false },
-  { to: '/compare', icon: '⚖️', label: '比較分析', exact: false },
-]
+  { to: '/',           Icon: Icon.Home,     label: '首頁',     exact: true  },
+  { to: '/individual', Icon: Icon.BarChart, label: '個股分析', exact: false },
+  { to: '/portfolio',  Icon: Icon.Folder,   label: '投資組合', exact: false },
+  { to: '/compare',    Icon: Icon.Scale,    label: '比較分析', exact: false },
+] as const
 
 interface NavItemProps {
   to: string
-  icon: string
+  Icon: typeof Icon.Home
   label: string
   exact: boolean
 }
 
-function SidebarLink({ to, icon, label, exact }: NavItemProps) {
+function SidebarLink({ to, Icon: SvgIcon, label, exact }: NavItemProps) {
   return (
     <NavLink
       to={to}
@@ -27,13 +28,13 @@ function SidebarLink({ to, icon, label, exact }: NavItemProps) {
         }`
       }
     >
-      <span className="text-base leading-none">{icon}</span>
+      <SvgIcon size={18} />
       <span>{label}</span>
     </NavLink>
   )
 }
 
-function BottomTabLink({ to, icon, label, exact }: NavItemProps) {
+function BottomTabLink({ to, Icon: SvgIcon, label, exact }: NavItemProps) {
   return (
     <NavLink
       to={to}
@@ -46,7 +47,7 @@ function BottomTabLink({ to, icon, label, exact }: NavItemProps) {
         }`
       }
     >
-      <span className="text-lg leading-none">{icon}</span>
+      <SvgIcon size={20} />
       <span>{label}</span>
     </NavLink>
   )
@@ -58,7 +59,7 @@ export default function NavBar() {
       {/* ── Desktop Sidebar (md+) ── */}
       <aside className="hidden md:flex flex-col fixed left-0 top-0 h-full w-[200px] bg-surface border-r border-base z-40">
         <div className="px-4 py-5 border-b border-base">
-          <p className="text-h1 font-bold text-main">📈 財商實戰課</p>
+          <p className="text-h1 font-bold text-main">財商實戰課</p>
           <p className="text-caption text-faint mt-0.5">阮慕驊課程工具</p>
         </div>
         <nav className="flex flex-col gap-1 p-3 flex-1 overflow-y-auto">

@@ -27,7 +27,7 @@ export default function ResultCard({
     <div className={`border rounded-xl p-4 ${colorMap[color]}`}>
       <p className="text-label font-medium uppercase tracking-wider opacity-70 mb-1">{title}</p>
       <div className="flex items-baseline gap-1">
-        <span className={`font-bold ${large ? 'text-display' : 'text-h1'}`}>
+        <span className={`num font-bold ${large ? 'text-display' : 'text-h1'}`}>
           {typeof value === 'number' ? value.toFixed(4) : value}
         </span>
         {unit && <span className="text-small font-medium opacity-70">{unit}</span>}

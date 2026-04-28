@@ -107,7 +107,7 @@ function HurstBlock({
             <h3 className="text-label font-semibold text-dim uppercase tracking-wider mb-3">
               計算步驟
             </h3>
-            <div className="bg-elevated rounded-lg p-4 text-small font-mono space-y-1 text-main">
+            <div className="bg-elevated rounded-lg p-4 text-small num space-y-1 text-main">
               <p>μ = {result.mu.toFixed(6)}</p>
               <p>Xₜ = Σ(rᵢ − μ)，共 {result.n} 筆</p>
               <p>R = MAX(Xₜ) − MIN(Xₜ) = {result.r.toFixed(6)}</p>
@@ -309,7 +309,7 @@ export default function IndividualPage() {
             </div>
             <div className="border-t border-base pt-4">
               <h3 className="text-label font-semibold text-dim uppercase tracking-wider mb-3">計算步驟</h3>
-              <div className="bg-elevated rounded-lg p-4 text-small font-mono space-y-1 text-main">
+              <div className="bg-elevated rounded-lg p-4 text-small num space-y-1 text-main">
                 <p>EV = 勝率 × Avg Gain − 敗率 × Avg Loss</p>
                 <p>
                   EV = {fmt(results.ev.winRate)} × {fmt(results.ev.avgGain)} − {fmt(results.ev.lossRate)} × {fmt(results.ev.avgLoss)}
@@ -406,15 +406,15 @@ function McBlock({ mcResult, varResult }: { mcResult: MonteCarloResult; varResul
                 <div className="space-y-1">
                   <div className="flex justify-between text-small">
                     <span className="text-green-700 font-medium">P95</span>
-                    <span className="text-main">{(data.p95 / 10000).toFixed(1)} 萬</span>
+                    <span className="num text-main">{(data.p95 / 10000).toFixed(1)} 萬</span>
                   </div>
                   <div className="flex justify-between text-small">
                     <span className="text-blue-600 font-medium">P50</span>
-                    <span className="text-main">{(data.p50 / 10000).toFixed(1)} 萬</span>
+                    <span className="num text-main">{(data.p50 / 10000).toFixed(1)} 萬</span>
                   </div>
                   <div className="flex justify-between text-small">
                     <span className="text-red-600 font-medium">P5</span>
-                    <span className="text-main">{(data.p5 / 10000).toFixed(1)} 萬</span>
+                    <span className="num text-main">{(data.p5 / 10000).toFixed(1)} 萬</span>
                   </div>
                 </div>
               </div>

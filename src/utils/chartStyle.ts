@@ -1,35 +1,47 @@
 /**
  * Shared Recharts style constants for consistent chart appearance
  * across all pages. Always import from here — no inline style objects.
+ *
+ * Colors are read from CSS variables defined in @theme (index.css) at
+ * runtime, so changing a token there instantly updates all charts.
  */
+
+/** Read a CSS variable from :root at runtime; fallback for SSR / tests. */
+function token(name: string, fallback: string): string {
+  if (typeof window === 'undefined') return fallback
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  return v || fallback
+}
 
 export const TOOLTIP_STYLE = {
   contentStyle: {
-    background: '#FFFFFF',
-    border: '1px solid #C6C6C8',
+    background:   token('--color-surface', '#FFFFFF'),
+    border:       `1px solid ${token('--color-base', '#C6C6C8')}`,
     borderRadius: 8,
-    fontSize: 12,
-    color: '#1C1C1E',
+    fontSize:     12,
+    color:        token('--color-main', '#1C1C1E'),
+    fontFamily:   token('--font-num', "'JetBrains Mono', monospace"),
+    fontVariantNumeric: 'tabular-nums',
   },
-  labelStyle: { color: '#6C6C70', fontWeight: 600 },
-  itemStyle: { color: '#1C1C1E' },
+  labelStyle: { color: token('--color-dim',  '#6C6C70'), fontWeight: 600 },
+  itemStyle:  { color: token('--color-main', '#1C1C1E') },
 }
 
 export const AXIS_TICK_STYLE = {
   fontSize: 10,
-  fill: '#AEAEB2',
+  fill: token('--color-faint', '#AEAEB2'),
 }
 
 export const CHART_COLORS = {
-  p5: '#DC2626',     // red-600
-  p50: '#2563EB',    // blue-600
-  p95: '#16A34A',    // green-700
-  var95: '#D97706',  // amber-600
-  var99: '#DC2626',  // red-600
-  hurst: '#2563EB',  // blue-600
-  bar: '#93C5FD',    // blue-300
-  grid: '#F0F0F0',
-  positive: '#16A34A',
-  negative: '#DC2626',
-  refLine: '#D1D5DB',
+  p5:       token('--color-negative',  '#DC2626'),
+  p50:      token('--color-accent',    '#2563EB'),
+  p95:      token('--color-positive',  '#16A34A'),
+  var95:    token('--color-attention', '#D97706'),
+  var99:    token('--color-negative',  '#DC2626'),
+  hurst:    token('--color-accent',    '#2563EB'),
+  bar:      token('--color-bar',       '#93C5FD'),
+  grid:     token('--color-grid',      '#F0F0F0'),
+  positive: token('--color-positive',  '#16A34A'),
+  negative: token('--color-negative',  '#DC2626'),
+  refLine:  token('--color-ref',       '#D1D5DB'),
 }

@@ -65,14 +65,14 @@ function CompareRow({ label, valA, valB, aWins, bWins }: CompareRowProps) {
           aWins ? 'bg-green-50 text-green-700' : 'text-main'
         }`}
       >
-        {valA ?? '－ 尚未選取'}
+        {valA != null ? <span className="num">{valA}</span> : '－ 尚未選取'}
       </td>
       <td
         className={`px-4 py-3 text-small text-center font-semibold ${
           bWins ? 'bg-green-50 text-green-700' : 'text-main'
         }`}
       >
-        {valB ?? '－ 尚未選取'}
+        {valB != null ? <span className="num">{valB}</span> : '－ 尚未選取'}
       </td>
     </tr>
   )

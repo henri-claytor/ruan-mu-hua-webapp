@@ -11,6 +11,24 @@
   --color-dim: #6C6C70;
   --color-faint: #AEAEB2;
 
+  /* ── Status / Accent palette ── */
+  /* 內容語意：獲利 / 虧損 / 注意 / 主互動 */
+  --color-positive:      #16A34A;   /* green-700  · Avg Gain · 勝率 · P95 */
+  --color-positive-soft: #F0FDF4;
+  --color-negative:      #DC2626;   /* red-600    · Avg Loss · VaR99 · P5 */
+  --color-negative-soft: #FEF2F2;
+  --color-attention:     #D97706;   /* amber-600  · VaR95 */
+  --color-attention-soft:#FFFBEB;
+  --color-accent:        #2563EB;   /* blue-600   · 主互動 · P50 · Hurst */
+  --color-accent-soft:   #EFF6FF;
+  --color-bar:           #93C5FD;   /* blue-300   · histogram bar */
+  --color-grid:          #F0F0F0;
+  --color-ref:           #D1D5DB;
+
+  /* Font families — text vs number tracks */
+  --font-sans: system-ui, 'Segoe UI', -apple-system, sans-serif;
+  --font-num: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, ui-monospace, monospace;
+
   /* Font Size Tokens */
   --text-display: 2.25rem;   /* 36px — KPI 數字 */
   --text-h1: 1.125rem;       /* 18px — 頁面標題 */
@@ -27,8 +45,17 @@
 
 body {
   margin: 0;
-  font-family: system-ui, 'Segoe UI', -apple-system, sans-serif;
+  font-family: var(--font-sans);
   background-color: var(--color-app, #F2F2F7);
   color: var(--color-main, #1C1C1E);
   -webkit-font-smoothing: antialiased;
+}
+
+/* ── Number track ── */
+/* Apply to any element that displays numeric values; keep Chinese labels on body track. */
+.num {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1, 'cv11' 1;
+  letter-spacing: -0.01em;
 }
