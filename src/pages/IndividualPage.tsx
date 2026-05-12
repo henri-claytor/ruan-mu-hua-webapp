@@ -1,16 +1,20 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import StockSelector from '../components/StockSelector'
 import ResultCard from '../components/ResultCard'
-import QuadrantBadge from '../components/QuadrantBadge'
 import VarHistogram from '../components/charts/VarHistogram'
 import FanChart from '../components/charts/FanChart'
-import HurstLineChart from '../components/charts/HurstLineChart'
-import { calcEV, type EVResult } from '../lib/ev'
+import MultiScaleHurstBlock from '../components/charts/MultiScaleHurstBlock'
+import MultiScaleEVBlock from '../components/charts/MultiScaleEVBlock'
+import { calcMultiScaleEV, type MultiScaleEVResult } from '../lib/ev'
 import { calcVaR, type VaRResult } from '../lib/var'
 import { runMonteCarlo, type MonteCarloResult } from '../lib/montecarlo'
-import { calcHurst, type HurstResult } from '../lib/hurst'
+import { calcMultiScaleHurst, type MultiScaleHurstResult } from '../lib/hurst'
 import { fetchMonthlyReturns, fetchDailyReturns } from '../lib/api'
 import { useAppStore } from '../store/useAppStore'
+import ActionGuide, { buildIndividualGuide, classifyVarLevel, type VarLevel } from '../components/ActionGuide'
+import MyTradeHistoryBlock from '../components/trade/MyTradeHistoryBlock'
+import { fmtPct, colorByReturn } from '../utils/format'
 import {
   buildIndividualSummary,
   copyTextToClipboard,
@@ -18,16 +22,20 @@ import {
   buildPngFilename,
 } from '../utils/export'
 
-function fmt(n: number, digits = 2): string {
-  return (n * 100).toFixed(digits) + '%'
+function fmtWan(n: number): string {
+  return `${(n / 10000).toFixed(1)} 萬`
+}
+
+const VAR_LEVEL_LABEL: Record<VarLevel, string> = {
+  low: '低風險（VaR95 < 5%）',
+  mid: '中等風險（VaR95 5%–10%）',
+  high: '高風險（VaR95 > 10%）',
 }
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
 function SkeletonCard() {
-  return (
-    <div className="bg-elevated rounded-xl h-16 animate-pulse" />
-  )
+  return <div className="bg-elevated rounded-xl h-16 animate-pulse" />
 }
 
 function SkeletonSection({ title }: { title: string }) {
@@ -63,61 +71,24 @@ function CopyButton({ onCopy, disabled }: { onCopy: () => Promise<void>; disable
   )
 }
 
-// ── Hurst block ───────────────────────────────────────────────────────────────
+// ── Section block container ───────────────────────────────────────────────────
 
-function HurstBlock({
-  result,
-  freqLabel,
+function SectionBlock({
+  title,
+  subtitle,
+  children,
 }: {
-  result: HurstResult
-  freqLabel: string
+  title: string
+  subtitle?: string
+  children: React.ReactNode
 }) {
-  const [open, setOpen] = useState(true)
   return (
-    <div className="bg-surface rounded-2xl border border-base overflow-hidden">
-      <button
-        className="w-full flex items-center justify-between px-6 py-4 hover:bg-elevated transition-colors"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <div>
-          <h2 className="text-h2 font-semibold text-main text-left">Hurst 指數分析</h2>
-          {freqLabel && (
-            <p className="text-caption text-faint text-left mt-0.5">使用{freqLabel}</p>
-          )}
-        </div>
-        <span className="text-faint text-small">{open ? '▼ 收折' : '▶ 展開'}</span>
-      </button>
-      {open && (
-        <div className="px-6 pb-6 space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <ResultCard
-              title="Hurst H 值"
-              value={result.h.toFixed(4)}
-              color={result.h > 0.6 ? 'green' : result.h < 0.4 ? 'red' : 'blue'}
-              large
-            />
-            <ResultCard title="解讀" value={result.interpretation} />
-            <ResultCard title="R（範圍）" value={result.r.toFixed(6)} />
-            <ResultCard title="S（標準差）" value={result.s.toFixed(6)} />
-          </div>
-
-          <HurstLineChart cumDeviations={result.cumDeviations} subtitle={freqLabel} />
-
-          <div className="border-t border-base pt-4">
-            <h3 className="text-label font-semibold text-dim uppercase tracking-wider mb-3">
-              計算步驟
-            </h3>
-            <div className="bg-elevated rounded-lg p-4 text-small num space-y-1 text-main">
-              <p>μ = {result.mu.toFixed(6)}</p>
-              <p>Xₜ = Σ(rᵢ − μ)，共 {result.n} 筆</p>
-              <p>R = MAX(Xₜ) − MIN(Xₜ) = {result.r.toFixed(6)}</p>
-              <p>S = 標準差 = {result.s.toFixed(6)}</p>
-              <p>H = log(R/S) / log(n) = log({(result.r / result.s).toFixed(4)}) / log({result.n})</p>
-              <p className="font-bold text-blue-700">H = {result.h.toFixed(4)}</p>
-            </div>
-          </div>
-        </div>
-      )}
+    <div className="bg-surface rounded-2xl border border-base p-6 space-y-4">
+      <div>
+        <h2 className="text-h2 font-semibold text-main">{title}</h2>
+        {subtitle && <p className="text-caption text-faint mt-0.5">{subtitle}</p>}
+      </div>
+      {children}
     </div>
   )
 }
@@ -128,10 +99,12 @@ interface Results {
   stockCode: string
   stockName: string
   freqLabel: string
-  ev: EVResult
+  monthlyCount: number
+  dailyCount: number
+  evMulti: MultiScaleEVResult | null
   var: VaRResult
   mc: MonteCarloResult
-  hurst: HurstResult | null
+  hurst: MultiScaleHurstResult | null
 }
 
 export default function IndividualPage() {
@@ -144,6 +117,16 @@ export default function IndividualPage() {
   const [error, setError] = useState<string | null>(null)
   const [results, setResults] = useState<Results | null>(null)
   const resultRef = useRef<HTMLDivElement>(null)
+  const [searchParams] = useSearchParams()
+
+  // 深度連結：URL ?code=XXXX 自動載入該股票
+  useEffect(() => {
+    const code = searchParams.get('code')
+    if (code && code !== individualStockCode) {
+      handleSelect(code, '')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   async function handleSelect(code: string, name: string) {
     setIndividualStockCode(code)
@@ -163,7 +146,6 @@ export default function IndividualPage() {
         return
       }
 
-      // Dual-frequency: use daily for VaR + Hurst if >= 252 records
       const useDaily = daily.length >= 252
       const returnsForRisk = useDaily ? daily : monthly
       const freqLabel = useDaily
@@ -176,10 +158,12 @@ export default function IndividualPage() {
         stockCode: code,
         stockName,
         freqLabel,
-        ev: calcEV(monthly),
+        monthlyCount: monthly.length,
+        dailyCount: daily.length,
+        evMulti: calcMultiScaleEV(monthly, daily),
         var: calcVaR(returnsForRisk),
         mc: runMonteCarlo(monthly, 100),
-        hurst: calcHurst(returnsForRisk),
+        hurst: calcMultiScaleHurst(daily),
       })
     } catch (err) {
       setError(`載入失敗：${String(err)}`)
@@ -195,9 +179,9 @@ export default function IndividualPage() {
   }
 
   async function handleCopy() {
-    if (!results) return
+    if (!results || !results.evMulti) return
     const text = buildIndividualSummary({
-      ev: results.ev,
+      ev: results.evMulti.long.ev,
       var: results.var,
       mc: results.mc,
     })
@@ -225,7 +209,7 @@ export default function IndividualPage() {
             )}
           </h1>
           <p className="text-small text-dim mt-0.5">
-            選取股票後自動載入月報酬與日報酬，計算 EV、VaR、蒙地卡羅與 Hurst
+            選取股票後自動載入月報酬與日報酬，計算 EV、VaR、Hurst 與蒙地卡羅模擬
           </p>
         </div>
         <button
@@ -262,7 +246,7 @@ export default function IndividualPage() {
         <div className="space-y-4">
           <SkeletonSection title="正在載入 EV 數據..." />
           <SkeletonSection title="正在載入 VaR 數據..." />
-          <SkeletonSection title="正在載入蒙地卡羅數據..." />
+          <SkeletonSection title="正在載入 Hurst 數據..." />
         </div>
       )}
 
@@ -282,155 +266,175 @@ export default function IndividualPage() {
             </button>
           </div>
 
-          {/* EV block */}
-          <div className="bg-surface rounded-2xl border border-base p-6 space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <h2 className="text-h2 font-semibold text-main">計算結果</h2>
-              <QuadrantBadge quadrant={results.ev.quadrant} />
+          {/* 1. 期望報酬與賠率優勢（EV，多尺度年化） */}
+          {results.evMulti ? (
+            <MultiScaleEVBlock
+              result={results.evMulti}
+              monthlyCount={results.monthlyCount}
+              dailyCount={results.dailyCount}
+            />
+          ) : (
+            <div className="bg-elevated border border-base rounded-2xl px-6 py-4">
+              <p className="text-small text-dim">
+                <span className="font-semibold text-main">期望報酬與賠率優勢未顯示：</span>
+                月報酬資料不足 60 筆（目前 {results.monthlyCount} 筆），需要約 5 年的月報酬資料才能使用多尺度 EV。
+              </p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <ResultCard title="期望值 EV" value={fmt(results.ev.ev)} color={results.ev.ev >= 0 ? 'green' : 'red'} large />
-              <ResultCard title="實際賠率" value={results.ev.actualOdds.toFixed(2)} subtitle="Avg Gain ÷ Avg Loss" color="blue" />
-              <ResultCard title="損益平衡賠率" value={results.ev.breakEvenOdds.toFixed(2)} subtitle="敗率 ÷ 勝率" />
-              <ResultCard
-                title="賠率優勢"
-                value={results.ev.actualOdds > results.ev.breakEvenOdds ? '有優勢' : '無優勢'}
-                color={results.ev.actualOdds > results.ev.breakEvenOdds ? 'green' : 'red'}
-              />
-            </div>
-            <div className="border-t border-base pt-4">
-              <h3 className="text-label font-semibold text-dim uppercase tracking-wider mb-3">基礎統計</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <ResultCard title="勝率" value={fmt(results.ev.winRate)} color="green" />
-                <ResultCard title="敗率" value={fmt(results.ev.lossRate)} color="red" />
-                <ResultCard title="Avg Gain" value={fmt(results.ev.avgGain)} color="green" />
-                <ResultCard title="Avg Loss" value={fmt(results.ev.avgLoss)} color="red" />
-              </div>
-            </div>
-            <div className="border-t border-base pt-4">
-              <h3 className="text-label font-semibold text-dim uppercase tracking-wider mb-3">計算步驟</h3>
-              <div className="bg-elevated rounded-lg p-4 text-small num space-y-1 text-main">
-                <p>EV = 勝率 × Avg Gain − 敗率 × Avg Loss</p>
-                <p>
-                  EV = {fmt(results.ev.winRate)} × {fmt(results.ev.avgGain)} − {fmt(results.ev.lossRate)} × {fmt(results.ev.avgLoss)}
-                </p>
-                <p className={`font-bold ${results.ev.ev >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                  EV = {fmt(results.ev.ev)}
-                </p>
-              </div>
-            </div>
-          </div>
+          )}
 
-          {/* VaR block */}
+          {/* 2. 下行風險：最壞情境虧損（VaR） */}
           <VarBlock varResult={results.var} freqLabel={results.freqLabel} />
 
-          {/* Monte Carlo block */}
-          <McBlock mcResult={results.mc} varResult={results.var} />
-
-          {/* Hurst block */}
-          {results.hurst && (
-            <HurstBlock result={results.hurst} freqLabel={results.freqLabel} />
+          {/* 3. 趨勢延續性偵測（Hurst） */}
+          {results.hurst ? (
+            <MultiScaleHurstBlock result={results.hurst} />
+          ) : (
+            <div className="bg-elevated border border-base rounded-2xl px-6 py-4">
+              <p className="text-small text-dim">
+                <span className="font-semibold text-main">趨勢延續性偵測未顯示：</span>
+                日報酬資料不足 240 筆（目前 {results.dailyCount} 筆），需要約 1 年的交易紀錄才能計算多尺度 Hurst。
+              </p>
+            </div>
           )}
+
+          {/* 4. 未來資產淨值模擬（蒙地卡羅） */}
+          <McBlock mcResult={results.mc} monthlyCount={results.monthlyCount} />
+
+          {/* 5. 建議行動參考 */}
+          <ActionGuide
+            items={buildIndividualGuide({
+              ev: results.evMulti?.long.ev.ev ?? 0,
+              evQuadrant: results.evMulti?.long.ev.quadrant ?? '低賠率負期望值（避免）',
+              varLevel: classifyVarLevel(results.var.var95),
+              hurstH: results.hurst?.short.h ?? null,
+              hurstDivergence: results.hurst?.divergence,
+              evDivergence: results.evMulti?.divergence,
+            })}
+          />
+
+          {/* 6. 我在這檔的交易紀錄（雙向跨頁連結反向 + 市場 vs 我的賠率對照）*/}
+          <MyTradeHistoryBlock
+            stockCode={results.stockCode}
+            stockName={results.stockName}
+            marketPayoff={results.evMulti?.long.ev.actualOdds ?? null}
+          />
         </div>
       )}
     </div>
   )
 }
 
-// ── Sub-blocks ────────────────────────────────────────────────────────────────
+// ── VaR block ─────────────────────────────────────────────────────────────────
+// VaR 為負報酬，採台股慣例：負值用綠色 + 顯示負號
 
 function VarBlock({ varResult, freqLabel }: { varResult: VaRResult; freqLabel: string }) {
-  const [open, setOpen] = useState(true)
+  const level = classifyVarLevel(varResult.var95)
+  const levelLabel = VAR_LEVEL_LABEL[level]
   return (
-    <div className="bg-surface rounded-2xl border border-base overflow-hidden">
-      <button
-        className="w-full flex items-center justify-between px-6 py-4 hover:bg-elevated transition-colors"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <div>
-          <h2 className="text-h2 font-semibold text-main text-left">風險值（VaR）</h2>
-          {freqLabel && (
-            <p className="text-caption text-faint text-left mt-0.5">使用{freqLabel}</p>
-          )}
+    <SectionBlock
+      title="下行風險：最壞情境虧損"
+      subtitle={`VaR 95% / 99% · 使用${freqLabel}`}
+    >
+      {/* Hero 列：VaR95 報酬率 + 風險等級徽章（風險等級徽章保留警示語意：高=紅、低=綠） */}
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-center">
+        <ResultCard
+          title="VaR 95%"
+          value={fmtPct(varResult.var95)}
+          color={colorByReturn(varResult.var95)}
+          emphasis="hero"
+          subtitle={`有 5% 機率虧損超過 ${(Math.abs(varResult.var95) * 100).toFixed(2)}%`}
+        />
+        <div className="space-y-2">
+          <span
+            className={`inline-block px-4 py-2 rounded-xl text-h2 font-bold border-2
+              ${level === 'low'  ? 'bg-green-50  border-green-300  text-green-700'  : ''}
+              ${level === 'mid'  ? 'bg-amber-50  border-amber-300  text-amber-700'  : ''}
+              ${level === 'high' ? 'bg-red-50    border-red-300    text-red-700'    : ''}`}
+          >
+            {levelLabel}
+          </span>
         </div>
-        <span className="text-faint text-small">{open ? '▼ 收折' : '▶ 展開'}</span>
-      </button>
-      {open && (
-        <div className="px-6 pb-6 space-y-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="grid grid-cols-2 gap-3 flex-shrink-0">
-              <ResultCard
-                title="VaR 95%"
-                value={fmt(varResult.var95)}
-                subtitle={`有 5% 機率虧損超過 ${fmt(Math.abs(varResult.var95))}`}
-                color="yellow"
-              />
-              <ResultCard
-                title="VaR 99%"
-                value={fmt(varResult.var99)}
-                subtitle={`有 1% 機率虧損超過 ${fmt(Math.abs(varResult.var99))}`}
-                color="red"
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <VarHistogram returns={varResult.sorted} var95={varResult.var95} var99={varResult.var99} />
-            </div>
-          </div>
+      </div>
+
+      {/* 中層 + 圖表 */}
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex-shrink-0 md:w-64">
+          <ResultCard
+            title="VaR 99%"
+            value={fmtPct(varResult.var99)}
+            color={colorByReturn(varResult.var99)}
+            subtitle={`有 1% 機率虧損超過 ${(Math.abs(varResult.var99) * 100).toFixed(2)}%`}
+          />
         </div>
-      )}
-    </div>
+        <div className="flex-1 min-w-0">
+          <VarHistogram returns={varResult.sorted} var95={varResult.var95} var99={varResult.var99} />
+        </div>
+      </div>
+    </SectionBlock>
   )
 }
 
-function McBlock({ mcResult, varResult }: { mcResult: MonteCarloResult; varResult: VaRResult }) {
-  const [open, setOpen] = useState(true)
+// ── Monte Carlo block ─────────────────────────────────────────────────────────
+
+function McBlock({ mcResult, monthlyCount }: { mcResult: MonteCarloResult; monthlyCount: number }) {
+  const fiveYr = mcResult.fiveYear
+  const heroColor = fiveYr.p50 >= 1_000_000 ? 'green' : fiveYr.p50 >= 800_000 ? 'yellow' : 'red'
   return (
-    <div className="bg-surface rounded-2xl border border-base overflow-hidden">
-      <button
-        className="w-full flex items-center justify-between px-6 py-4 hover:bg-elevated transition-colors"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <h2 className="text-h2 font-semibold text-main">蒙地卡羅模擬（初始 100 萬）</h2>
-        <span className="text-faint text-small">{open ? '▼ 收折' : '▶ 展開'}</span>
-      </button>
-      {open && (
-        <div className="px-6 pb-6 space-y-4">
-          <div className="grid grid-cols-3 gap-3">
-            {([
-              { label: '1 年', data: mcResult.oneYear },
-              { label: '3 年', data: mcResult.threeYear },
-              { label: '5 年', data: mcResult.fiveYear },
-            ] as const).map(({ label, data }) => (
-              <div key={label} className="bg-elevated rounded-xl p-4">
-                <p className="text-small font-semibold text-dim mb-2">{label}</p>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-small">
-                    <span className="text-green-700 font-medium">P95</span>
-                    <span className="num text-main">{(data.p95 / 10000).toFixed(1)} 萬</span>
-                  </div>
-                  <div className="flex justify-between text-small">
-                    <span className="text-blue-600 font-medium">P50</span>
-                    <span className="num text-main">{(data.p50 / 10000).toFixed(1)} 萬</span>
-                  </div>
-                  <div className="flex justify-between text-small">
-                    <span className="text-red-600 font-medium">P5</span>
-                    <span className="num text-main">{(data.p5 / 10000).toFixed(1)} 萬</span>
-                  </div>
-                </div>
+    <SectionBlock
+      title="未來資產淨值模擬"
+      subtitle={`蒙地卡羅，初始 100 萬，模擬 100 條路徑 · 使用月報酬 ${monthlyCount} 筆`}
+    >
+      {/* Hero 列：5 年 P50 */}
+      <ResultCard
+        title="5 年中位數情境（P50）"
+        value={fmtWan(fiveYr.p50)}
+        color={heroColor}
+        emphasis="hero"
+        subtitle={`期望範圍 P5: ${fmtWan(fiveYr.p5)} ~ P95: ${fmtWan(fiveYr.p95)}`}
+      />
+
+      {/* 中層：1/3/5 年三組區塊 */}
+      <div className="grid grid-cols-3 gap-3">
+        {([
+          { label: '1 年', data: mcResult.oneYear },
+          { label: '3 年', data: mcResult.threeYear },
+          { label: '5 年', data: mcResult.fiveYear },
+        ] as const).map(({ label, data }) => (
+          <div key={label} className="bg-elevated rounded-xl p-4">
+            <p className="text-small font-semibold text-dim mb-2">{label}</p>
+            <div className="space-y-1">
+              <div className="flex justify-between text-small">
+                <span className="text-green-700 font-medium">P95</span>
+                <span className="num text-main">{(data.p95 / 10000).toFixed(1)} 萬</span>
               </div>
-            ))}
-          </div>
-          <FanChart paths={mcResult.allPathsMonthly} />
-          <div className="border-t border-base pt-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <ResultCard title="μ（月均報酬）" value={fmt(mcResult.mu, 4)} />
-              <ResultCard title="σ（月報酬標準差）" value={fmt(mcResult.sigma, 4)} />
-              <ResultCard title="模擬路徑數" value="100 條" />
-              <ResultCard title="月報酬筆數" value={`${varResult.sorted.length} 筆`} />
+              <div className="flex justify-between text-small">
+                <span className="text-blue-600 font-medium">P50</span>
+                <span className="num text-main">{(data.p50 / 10000).toFixed(1)} 萬</span>
+              </div>
+              <div className="flex justify-between text-small">
+                <span className="text-red-600 font-medium">P5</span>
+                <span className="num text-main">{(data.p5 / 10000).toFixed(1)} 萬</span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        ))}
+      </div>
+
+      <FanChart paths={mcResult.allPathsMonthly} />
+
+      {/* 弱化：模擬基本參數 */}
+      <div className="border-t border-base pt-3">
+        <p className="text-label text-faint mb-1.5">模擬基本參數</p>
+        <p className="text-small text-dim num">
+          μ（月均報酬）<span className={`font-semibold ${mcResult.mu > 0 ? 'text-red-700' : mcResult.mu < 0 ? 'text-green-700' : 'text-main'}`}>{fmtPct(mcResult.mu, 4)}</span>
+          {' · '}
+          σ（月報酬標準差）<span className="font-semibold">{(mcResult.sigma * 100).toFixed(4)}%</span>
+          {' · '}
+          模擬路徑數 <span className="font-semibold">100 條</span>
+          {' · '}
+          月報酬筆數 <span className="font-semibold">{monthlyCount} 筆</span>
+        </p>
+      </div>
+    </SectionBlock>
   )
 }

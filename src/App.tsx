@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage'
 import IndividualPage from './pages/IndividualPage'
 import PortfolioPage from './pages/PortfolioPage'
 import ComparePage from './pages/ComparePage'
+import PerformancePage from './pages/PerformancePage'
 import { useAppStore } from './store/useAppStore'
 import { fetchStockList } from './lib/api'
 
@@ -34,6 +35,7 @@ function App() {
               <Route path="/individual" element={<IndividualPage />} />
               <Route path="/portfolio" element={<PortfolioPage />} />
               <Route path="/compare" element={<ComparePage />} />
+              <Route path="/performance" element={<PerformancePage />} />
               {/* /hurst redirects to home — page has been removed */}
               <Route path="/hurst" element={<Navigate to="/" replace />} />
             </Routes>

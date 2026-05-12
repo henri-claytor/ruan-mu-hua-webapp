@@ -5,6 +5,8 @@ import { calcVaR, type VaRResult } from '../lib/var'
 import { calcHurst, type HurstResult } from '../lib/hurst'
 import { fetchMonthlyReturns, fetchDailyReturns } from '../lib/api'
 import { useAppStore, type CompareStock } from '../store/useAppStore'
+import ActionGuide, { buildCompareGuide } from '../components/ActionGuide'
+import { fmtPct } from '../utils/format'
 
 function fmt(n: number, digits = 2): string {
   return (n * 100).toFixed(digits) + '%'
@@ -228,8 +230,8 @@ export default function ComparePage() {
             <tbody>
               <CompareRow
                 label="期望值（EV）"
-                valA={resultA.ev ? fmt(resultA.ev.ev) : null}
-                valB={resultB.ev ? fmt(resultB.ev.ev) : null}
+                valA={resultA.ev ? fmtPct(resultA.ev.ev) : null}
+                valB={resultB.ev ? fmtPct(resultB.ev.ev) : null}
                 aWins={evAdv.a}
                 bWins={evAdv.b}
               />
@@ -249,15 +251,15 @@ export default function ComparePage() {
               />
               <CompareRow
                 label={`VaR 95%（虧損少者優）${resultA.freqLabel || resultB.freqLabel ? ` — A:${resultA.freqLabel || '—'} / B:${resultB.freqLabel || '—'}` : ''}`}
-                valA={resultA.var ? fmt(resultA.var.var95) : null}
-                valB={resultB.var ? fmt(resultB.var.var95) : null}
+                valA={resultA.var ? fmtPct(resultA.var.var95) : null}
+                valB={resultB.var ? fmtPct(resultB.var.var95) : null}
                 aWins={var95Adv.a}
                 bWins={var95Adv.b}
               />
               <CompareRow
                 label="VaR 99%（虧損少者優）"
-                valA={resultA.var ? fmt(resultA.var.var99) : null}
-                valB={resultB.var ? fmt(resultB.var.var99) : null}
+                valA={resultA.var ? fmtPct(resultA.var.var99) : null}
+                valB={resultB.var ? fmtPct(resultB.var.var99) : null}
                 aWins={var99Adv.a}
                 bWins={var99Adv.b}
               />
@@ -307,6 +309,22 @@ export default function ComparePage() {
           <p className="text-dim text-body">請在上方選取至少一支股票</p>
           <p className="text-faint text-small mt-1">選取後比較表格將自動顯示</p>
         </div>
+      )}
+
+      {/* 建議行動：兩股都有完整資料時才顯示 */}
+      {resultA.ev && resultB.ev && (
+        <ActionGuide
+          items={buildCompareGuide({
+            evA: resultA.ev.ev,
+            evB: resultB.ev.ev,
+            varA: resultA.var?.var95 ?? null,
+            varB: resultB.var?.var95 ?? null,
+            hurstA: resultA.hurst?.h ?? null,
+            hurstB: resultB.hurst?.h ?? null,
+            nameA: labelA,
+            nameB: labelB,
+          })}
+        />
       )}
     </div>
   )

@@ -58,4 +58,23 @@ export const Icon = {
       <path d="M3 12 Q 7 6, 11 12 T 19 12" />
     </svg>
   ),
+  ClipboardCheck: ({ className = '', size = 18 }: IconProps) => (
+    <svg {...base(size)} className={className}>
+      <rect x="6" y="4" width="12" height="16" rx="2" />
+      <path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" />
+      <polyline points="9 13 11 15 15 11" />
+    </svg>
+  ),
+  TrendDown: ({ className = '', size = 16 }: IconProps) => (
+    <svg {...base(size)} className={className}>
+      <polyline points="22 17 13.5 8.5 8.5 13.5 2 7" />
+      <polyline points="16 17 22 17 22 11" />
+    </svg>
+  ),
+  TrendUp: ({ className = '', size = 16 }: IconProps) => (
+    <svg {...base(size)} className={className}>
+      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+      <polyline points="16 7 22 7 22 13" />
+    </svg>
+  ),
 }

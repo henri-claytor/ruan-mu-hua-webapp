@@ -2,10 +2,11 @@ import { NavLink } from 'react-router-dom'
 import { Icon } from './icons'
 
 const NAV_ITEMS = [
-  { to: '/',           Icon: Icon.Home,     label: '首頁',     exact: true  },
-  { to: '/individual', Icon: Icon.BarChart, label: '個股分析', exact: false },
-  { to: '/portfolio',  Icon: Icon.Folder,   label: '投資組合', exact: false },
-  { to: '/compare',    Icon: Icon.Scale,    label: '比較分析', exact: false },
+  { to: '/',            Icon: Icon.Home,           label: '首頁',     exact: true  },
+  { to: '/individual',  Icon: Icon.BarChart,       label: '個股分析', exact: false },
+  { to: '/portfolio',   Icon: Icon.Folder,         label: '投資組合', exact: false },
+  { to: '/compare',     Icon: Icon.Scale,          label: '比較分析', exact: false },
+  { to: '/performance', Icon: Icon.ClipboardCheck, label: '績效分析', exact: false },
 ] as const
 
 interface NavItemProps {
