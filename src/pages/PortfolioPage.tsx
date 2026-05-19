@@ -48,7 +48,7 @@ function SectionBlock({
   return (
     <div className="bg-surface rounded-2xl border border-base p-6 space-y-4">
       <div>
-        <h2 className="text-h2 font-semibold text-main">{title}</h2>
+        <h2 className="font-serif text-h2 font-bold text-main tracking-wide">{title}</h2>
         {subtitle && <p className="text-caption text-faint mt-0.5">{subtitle}</p>}
       </div>
       {children}
@@ -256,7 +256,7 @@ export default function PortfolioPage() {
       {/* ── Header ── */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-h1 font-bold text-main">投資組合分析</h1>
+          <h1 className="font-serif text-h1 font-bold text-main tracking-wide">投資組合分析</h1>
           <p className="text-small text-dim mt-0.5">
             選取多支股票並設定比重，計算加權組合 EV、VaR、Hurst 指數與蒙地卡羅模擬
           </p>
@@ -277,7 +277,7 @@ export default function PortfolioPage() {
           className="w-full flex items-center justify-between px-6 py-4 hover:bg-elevated transition-colors"
         >
           <div className="text-left">
-            <h2 className="text-h2 font-semibold text-main">股票選取與比重設定</h2>
+            <h2 className="font-serif text-h2 font-bold text-main tracking-wide">股票選取與比重設定</h2>
             <p className="text-caption text-faint mt-0.5">
               {stocks.length} 支股票 · 比重合計
               <span className={`num font-semibold ml-1 ${weightValid ? 'text-green-700' : 'text-red-600'}`}>

@@ -158,7 +158,7 @@ export default function StockQuadrantMatrix({ stocks, filterStockId, anchorId, d
     <div className="bg-surface rounded-2xl border border-base overflow-hidden" id={anchorId}>
       {/* Header */}
       <div className="px-6 py-4 border-b border-base">
-        <h2 className="text-h2 font-semibold text-main">個股分析</h2>
+        <h2 className="font-serif text-h2 font-bold text-main tracking-wide">個股分析</h2>
         <p className="text-caption text-faint mt-0.5">
           賠率 × 獲利因子矩陣 · 共 {stocks.length} 檔個股
           {filter !== 'ALL' && (

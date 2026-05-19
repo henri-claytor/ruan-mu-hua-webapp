@@ -23,7 +23,7 @@ export default function PerformanceCharts({ trades, stocks }: Props) {
         className="w-full flex items-center justify-between px-6 py-4 hover:bg-elevated transition-colors"
       >
         <div className="text-left">
-          <h2 className="text-h2 font-semibold text-main">績效視覺化</h2>
+          <h2 className="font-serif text-h2 font-bold text-main tracking-wide">績效視覺化</h2>
           <p className="text-caption text-faint mt-0.5">
             累積損益曲線、個股貢獻、持有天數分佈
           </p>

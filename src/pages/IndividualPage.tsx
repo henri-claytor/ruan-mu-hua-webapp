@@ -85,7 +85,7 @@ function SectionBlock({
   return (
     <div className="bg-surface rounded-2xl border border-base p-6 space-y-4">
       <div>
-        <h2 className="text-h2 font-semibold text-main">{title}</h2>
+        <h2 className="font-serif text-h2 font-bold text-main tracking-wide">{title}</h2>
         {subtitle && <p className="text-caption text-faint mt-0.5">{subtitle}</p>}
       </div>
       {children}
@@ -200,7 +200,7 @@ export default function IndividualPage() {
       {/* ── Header ── */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-h1 font-bold text-main">
+          <h1 className="font-serif text-h1 font-bold text-main tracking-wide">
             個股期望值計算
             {results && (
               <span className="ml-2 text-h2 font-normal text-dim">

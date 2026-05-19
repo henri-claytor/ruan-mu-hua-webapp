@@ -82,7 +82,7 @@ export default function RawTradeTable({ trades, onUpdate, onRemove }: Props) {
   return (
     <div className="bg-surface rounded-2xl border border-base overflow-hidden">
       <div className="px-6 py-4 border-b border-base">
-        <h2 className="text-h2 font-semibold text-main">交易明細</h2>
+        <h2 className="font-serif text-h2 font-bold text-main tracking-wide">交易明細</h2>
         <p className="text-caption text-faint mt-0.5">共 {trades.length} 筆，可點擊欄位標題排序</p>
       </div>
       <div className="overflow-x-auto">

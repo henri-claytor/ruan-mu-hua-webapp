@@ -17,7 +17,7 @@ export default function HoldingDaysDistribution({ trades }: Props) {
   return (
     <div className="bg-surface rounded-2xl border border-base p-6 space-y-3">
       <div>
-        <h3 className="text-h2 font-semibold text-main">持有天數分佈</h3>
+        <h3 className="font-serif text-h2 font-bold text-main tracking-wide">持有天數分佈</h3>
         <p className="text-caption text-faint mt-0.5">分桶統計勝場與敗場筆數</p>
       </div>
 

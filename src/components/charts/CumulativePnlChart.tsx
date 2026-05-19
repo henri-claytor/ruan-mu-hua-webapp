@@ -71,7 +71,7 @@ export default function CumulativePnlChart({ trades }: Props) {
   return (
     <div className="bg-surface rounded-2xl border border-base p-6 space-y-3">
       <div>
-        <h3 className="text-h2 font-semibold text-main">累積實現損益曲線</h3>
+        <h3 className="font-serif text-h2 font-bold text-main tracking-wide">累積實現損益曲線</h3>
         {maxDrawdown < 0 ? (
           <p className="text-caption text-faint mt-0.5">
             最大回撤

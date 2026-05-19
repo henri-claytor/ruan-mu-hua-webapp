@@ -20,7 +20,7 @@ export default function PortfolioPerformanceBlock({ performance: p }: Props) {
     <div className="bg-surface rounded-2xl border border-base p-6 space-y-4">
       {/* Header */}
       <div>
-        <h2 className="text-h2 font-semibold text-main">整體交易績效</h2>
+        <h2 className="font-serif text-h2 font-bold text-main tracking-wide">整體交易績效</h2>
         <p className="text-caption text-faint mt-0.5">
           期間 {p.periodStart} – {p.periodEnd} · 共 {p.nTrades} 筆交易（{p.nWins} 勝 / {p.nLosses} 敗 / {p.nFlat} 平）
         </p>

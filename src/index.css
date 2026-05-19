@@ -1,42 +1,93 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
 
-/* ── iOS Finance Light Theme Design Tokens ── */
+/* ── 課程質感 Theme Design Tokens ── */
 @theme {
-  /* Semantic Colors */
-  --color-app: #F2F2F7;
-  --color-surface: #FFFFFF;
-  --color-elevated: #F9F9F9;
-  --color-base: #C6C6C8;
-  --color-main: #1C1C1E;
-  --color-dim: #6C6C70;
-  --color-faint: #AEAEB2;
+  /* Semantic backgrounds */
+  --color-shell: #16100a;      /* deep brown shell */
+  --color-sidebar: #1f1509;    /* sidebar background */
+  --color-app: #f0e6d0;        /* main content area (cream) */
+  --color-surface: #fff9ef;    /* card surface (ivory) */
+  --color-elevated: #f4ead8;   /* elevated card */
+  --color-card2: #ede0c4;      /* second-level cream */
 
-  /* ── Status / Accent palette ── */
-  /* 內容語意：獲利 / 虧損 / 注意 / 主互動 */
-  --color-positive:      #16A34A;   /* green-700  · Avg Gain · 勝率 · P95 */
-  --color-positive-soft: #F0FDF4;
-  --color-negative:      #DC2626;   /* red-600    · Avg Loss · VaR99 · P5 */
-  --color-negative-soft: #FEF2F2;
-  --color-attention:     #D97706;   /* amber-600  · VaR95 */
-  --color-attention-soft:#FFFBEB;
-  --color-accent:        #2563EB;   /* blue-600   · 主互動 · P50 · Hurst */
-  --color-accent-soft:   #EFF6FF;
-  --color-bar:           #93C5FD;   /* blue-300   · histogram bar */
-  --color-grid:          #F0F0F0;
-  --color-ref:           #D1D5DB;
+  /* Text */
+  --color-main: #1a1108;
+  --color-main2: #3a2a18;
+  --color-dim: #7a6a50;
+  --color-faint: #b0a090;
 
-  /* Font families — text vs number tracks */
-  --font-sans: system-ui, 'Segoe UI', -apple-system, sans-serif;
-  --font-num: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, ui-monospace, monospace;
+  /* Borders */
+  --color-base: rgba(154, 122, 46, 0.20);
+  --color-gold-border: rgba(154, 122, 46, 0.30);
+
+  /* Gold palette (primary brand) */
+  --color-gold: #c9a84c;
+  --color-gold-dark: #9a7a2e;
+  --color-gold-light: #e0c070;
+
+  /* ── Status palette (紅漲綠跌) ── */
+  --color-positive:      #c0392b;   /* red — 漲 / 獲利 / EV */
+  --color-positive-soft: #f9e8e7;
+  --color-negative:      #2e7d52;   /* green — 跌 / 虧損 / VaR */
+  --color-negative-soft: #edf7f1;
+  --color-attention:     #9a7a2e;   /* gold-dark — 注意 */
+  --color-attention-soft:#fef9ec;
+  --color-accent:        #9a7a2e;   /* gold-dark — 主互動色 */
+  --color-accent-soft:   rgba(154, 122, 46, 0.07);
+  --color-bar:           #c9a84c;   /* gold — histogram bar */
+  --color-grid:          rgba(154, 122, 46, 0.15);
+  --color-ref:           rgba(154, 122, 46, 0.30);
+
+  /* ── Override Tailwind blue palette → gold-dark series (legacy bg-blue / text-blue paints gold) ── */
+  --color-blue-50:  rgba(154, 122, 46, 0.07);
+  --color-blue-100: rgba(154, 122, 46, 0.13);
+  --color-blue-200: rgba(154, 122, 46, 0.20);
+  --color-blue-300: rgba(154, 122, 46, 0.30);
+  --color-blue-400: #c9a84c;
+  --color-blue-500: #9a7a2e;
+  --color-blue-600: #9a7a2e;
+  --color-blue-700: #7a5e22;
+  --color-blue-800: #5a4516;
+
+  /* ── Override Tailwind red → 漲色 (#c0392b 系) ── */
+  --color-red-50:  #f9e8e7;
+  --color-red-100: #f4d7d4;
+  --color-red-200: rgba(192, 57, 43, 0.30);
+  --color-red-500: #c0392b;
+  --color-red-600: #c0392b;
+  --color-red-700: #a02b1f;
+
+  /* ── Override Tailwind green → 跌色 (#2e7d52 系) ── */
+  --color-green-50:  #edf7f1;
+  --color-green-100: #d8edde;
+  --color-green-200: rgba(46, 125, 82, 0.30);
+  --color-green-500: #2e7d52;
+  --color-green-600: #2e7d52;
+  --color-green-700: #25633f;
+
+  /* ── Override Tailwind amber → gold-dark系 ── */
+  --color-amber-50:  #fef9ec;
+  --color-amber-100: #fbf0d4;
+  --color-amber-200: rgba(201, 168, 76, 0.40);
+  --color-amber-500: #c9a84c;
+  --color-amber-600: #9a7a2e;
+  --color-amber-700: #9a7a2e;
+
+  /* Font families */
+  --font-sans: 'Noto Sans TC', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Noto Serif TC', Georgia, serif;
+  --font-num: 'Noto Serif TC', Georgia, serif;  /* numbers use serif for journal feel */
 
   /* Font Size Tokens */
-  --text-display: 2.25rem;   /* 36px — KPI 數字 */
-  --text-h1: 1.125rem;       /* 18px — 頁面標題 */
-  --text-h2: 0.875rem;       /* 14px — 區塊標題 */
-  --text-body: 0.8125rem;    /* 13px — 正文 */
-  --text-small: 0.75rem;     /* 12px — 輔助說明 */
-  --text-label: 0.6875rem;   /* 11px — 標籤 */
-  --text-caption: 0.625rem;  /* 10px — 圖表刻度 */
+  --text-hero: 2.125rem;     /* 34px — HomePage hero */
+  --text-display: 2.25rem;   /* 36px — KPI 大數 */
+  --text-h1: 1.375rem;       /* 22px — 頁面標題 */
+  --text-h2: 0.9375rem;      /* 15px — 區塊標題 */
+  --text-body: 0.84375rem;   /* 13.5px — 正文 */
+  --text-small: 0.75rem;     /* 12px */
+  --text-label: 0.6875rem;   /* 11px */
+  --text-caption: 0.65625rem;/* 10.5px */
 }
 
 * {
@@ -46,16 +97,77 @@
 body {
   margin: 0;
   font-family: var(--font-sans);
-  background-color: var(--color-app, #F2F2F7);
-  color: var(--color-main, #1C1C1E);
+  background-color: var(--color-app);
+  color: var(--color-main);
   -webkit-font-smoothing: antialiased;
+  letter-spacing: 0.01em;
 }
 
-/* ── Number track ── */
-/* Apply to any element that displays numeric values; keep Chinese labels on body track. */
+/* ── Typography helpers ── */
+.font-serif { font-family: var(--font-serif); }
 .num {
-  font-family: var(--font-num);
+  font-family: var(--font-serif);
   font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum' 1, 'cv11' 1;
-  letter-spacing: -0.01em;
+  font-feature-settings: 'tnum' 1;
+  letter-spacing: 0;
+  font-weight: 700;
+}
+
+/* ── Page entrance animations (u1–u6) ── */
+@keyframes up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.u1 { opacity: 0; animation: up 0.45s 0.05s ease forwards; }
+.u2 { opacity: 0; animation: up 0.45s 0.12s ease forwards; }
+.u3 { opacity: 0; animation: up 0.45s 0.18s ease forwards; }
+.u4 { opacity: 0; animation: up 0.45s 0.24s ease forwards; }
+.u5 { opacity: 0; animation: up 0.45s 0.30s ease forwards; }
+.u6 { opacity: 0; animation: up 0.45s 0.36s ease forwards; }
+
+/* ── Status badge pulse dot ── */
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+.sdot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-gold);
+  animation: pulse-soft 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+/* ── Status badge (sbadge) ── */
+.sbadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-base);
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  color: var(--color-gold-dark);
+}
+
+/* ── Ripple effect ── */
+@keyframes rpl {
+  to { transform: scale(5); opacity: 0; }
+}
+.rh {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(154, 122, 46, 0.12);
+  transform: scale(0);
+  pointer-events: none;
+  animation: rpl 0.7s ease-out forwards;
 }

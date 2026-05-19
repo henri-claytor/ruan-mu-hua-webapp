@@ -187,7 +187,7 @@ export default function ComparePage() {
     <div className="space-y-5">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-h1 font-bold text-main">個股並排比較</h1>
+          <h1 className="font-serif text-h1 font-bold text-main tracking-wide">個股並排比較</h1>
           <p className="text-small text-dim mt-0.5">
             選取兩支股票，並排比較 EV、VaR 與 Hurst 指數
           </p>

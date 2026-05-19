@@ -103,7 +103,7 @@ export default function MultiScaleHurstBlock({ result, titleOverride }: Props) {
         onClick={() => setOpen((v) => !v)}
       >
         <div>
-          <h2 className="text-h2 font-semibold text-main text-left">{title}</h2>
+          <h2 className="font-serif text-h2 font-bold text-main tracking-wide text-left">{title}</h2>
           <p className="text-caption text-faint text-left mt-0.5">
             Hurst 指數，60/120/240 日多尺度 · 使用日報酬 240 筆
           </p>

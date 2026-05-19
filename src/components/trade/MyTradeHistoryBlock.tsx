@@ -31,7 +31,7 @@ export default function MyTradeHistoryBlock({ stockCode, stockName, marketPayoff
   if (myTrades.length === 0) {
     return (
       <div className="bg-elevated border border-base rounded-2xl p-6 space-y-2">
-        <h2 className="text-h2 font-semibold text-main">我在這檔的交易紀錄</h2>
+        <h2 className="font-serif text-h2 font-bold text-main tracking-wide">我在這檔的交易紀錄</h2>
         <p className="text-small text-dim">
           你尚未在「績效分析」中記錄這檔股票（{stockCode} {stockName}）的交易。
         </p>
@@ -60,7 +60,7 @@ export default function MyTradeHistoryBlock({ stockCode, stockName, marketPayoff
       {/* 標題 + 4 象限徽章 */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-h2 font-semibold text-main">我在這檔的交易紀錄</h2>
+          <h2 className="font-serif text-h2 font-bold text-main tracking-wide">我在這檔的交易紀錄</h2>
           <p className="text-caption text-faint mt-0.5">
             來自本機儲存的「績效分析」資料
           </p>

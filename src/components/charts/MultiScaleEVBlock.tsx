@@ -148,7 +148,7 @@ export default function MultiScaleEVBlock({
   return (
     <div className="bg-surface rounded-2xl border border-base p-6 space-y-4">
       <div>
-        <h2 className="text-h2 font-semibold text-main">{title}</h2>
+        <h2 className="font-serif text-h2 font-bold text-main tracking-wide">{title}</h2>
         <p className="text-caption text-faint mt-0.5">
           EV 期望值多尺度分析（短/中/長）· 使用月報酬 {monthlyCount} 筆 + {dailyLabel}
         </p>

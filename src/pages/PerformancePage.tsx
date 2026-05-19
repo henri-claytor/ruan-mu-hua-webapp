@@ -71,7 +71,7 @@ export default function PerformancePage() {
     <div className="space-y-5">
       {/* Header */}
       <div>
-        <h1 className="text-h1 font-bold text-main">績效分析</h1>
+        <h1 className="font-serif text-h1 font-bold text-main tracking-wide">績效分析</h1>
         <p className="text-small text-dim mt-0.5">
           分析你過去交易的勝率、賠率、獲利因子，找出打法品質與資金管理問題
         </p>
@@ -112,7 +112,7 @@ export default function PerformancePage() {
           className="w-full flex items-center justify-between px-6 py-4 hover:bg-elevated transition-colors"
         >
           <div className="text-left">
-            <h2 className="text-h2 font-semibold text-main">資料輸入</h2>
+            <h2 className="font-serif text-h2 font-bold text-main tracking-wide">資料輸入</h2>
             <p className="text-caption text-faint mt-0.5">
               {hasTrades ? `已輸入 ${trades.length} 筆，點擊以新增更多` : '手動輸入或上傳 CSV'}
             </p>

@@ -27,9 +27,9 @@ function App() {
     <BrowserRouter>
       <div className="min-h-screen bg-app">
         <NavBar />
-        {/* Desktop: offset left by 200px for sidebar; Mobile: offset bottom for tab bar */}
-        <main className="md:ml-[200px] pb-20 md:pb-0">
-          <div className="max-w-4xl mx-auto px-4 py-6">
+        {/* Desktop: offset left by 196px for sidebar; Mobile: offset bottom for tab bar */}
+        <main className="md:ml-[196px] pb-20 md:pb-0">
+          <div className="max-w-[980px] mx-auto px-7 pt-13 pb-25">
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/individual" element={<IndividualPage />} />

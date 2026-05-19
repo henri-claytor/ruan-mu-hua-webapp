@@ -39,7 +39,7 @@ export default function StockContributionBar({ stocks }: Props) {
   return (
     <div className="bg-surface rounded-2xl border border-base p-6 space-y-3">
       <div>
-        <h3 className="text-h2 font-semibold text-main">個股損益貢獻</h3>
+        <h3 className="font-serif text-h2 font-bold text-main tracking-wide">個股損益貢獻</h3>
         <p className="text-caption text-faint mt-0.5">
           前 {Math.min(TOP_N, stocks.length)} 檔依絕對損益排序 · 紅漲綠跌
         </p>

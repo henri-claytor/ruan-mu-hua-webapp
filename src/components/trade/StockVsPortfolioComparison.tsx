@@ -416,7 +416,7 @@ export default function StockVsPortfolioComparison({
   return (
     <div className="bg-surface rounded-2xl border border-base p-6 space-y-4">
       <div>
-        <h2 className="text-h2 font-semibold text-main">個股 vs 組合對比</h2>
+        <h2 className="font-serif text-h2 font-bold text-main tracking-wide">個股 vs 組合對比</h2>
         <p className="text-caption text-faint mt-0.5">
           看每檔股票對組合各維度的貢獻方向（EV / VaR / Hurst）
         </p>
