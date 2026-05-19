@@ -1,8 +1,6 @@
 import { useState } from 'react'
-import ResultCard from '../ResultCard'
-import QuadrantBadge from '../QuadrantBadge'
 import type { MultiScaleEVResult, ScaleEV, EVDivergence } from '../../lib/ev'
-import { fmtPct, fmtWinRate, colorByReturn } from '../../utils/format'
+import { fmtPct, fmtWinRate } from '../../utils/format'
 import { METRIC_LABELS as L } from '../../lib/labels'
 
 // ── Divergence banner ─────────────────────────────────────────────────────────
@@ -55,19 +53,20 @@ interface ScaleCardProps {
   fallbackLabel: string
   /** 後備 window 描述 */
   fallbackWindowDesc: string
-  /** 視覺權重：'primary' 主要判斷 / 'reference' 參考用（弱化樣式） */
-  tier: 'primary' | 'reference'
+  /** 視覺權重：'primary'（一般主要）/ 'primary-main'（主判斷強調）/ 'reference'（長期參考橫向卡，由父層另渲染）*/
+  tier: 'primary' | 'primary-main'
+  /** 是否在右上角顯示「主判斷」chip + 🏆 */
+  isPrimaryMain?: boolean
   /** 短期可加「樣本較小」警語 */
   showSampleWarning?: boolean
 }
 
-function ScaleCard({ result, fallbackLabel, fallbackWindowDesc, tier, showSampleWarning }: ScaleCardProps) {
-  const isReference = tier === 'reference'
-  const cardCls = isReference
-    ? 'bg-elevated border border-[rgba(154,122,46,0.12)] rounded-lg px-[18px] py-4 opacity-90'
-    : 'bg-card2 border border-base rounded-lg px-[18px] py-4 hover:border-[rgba(154,122,46,0.28)] transition-colors'
-  const numSize = isReference ? 'text-[28px]' : 'text-[36px]'
-  const titleSize = isReference ? 'text-[16px]' : 'text-[18px]'
+function ScaleCard({ result, fallbackLabel, fallbackWindowDesc, tier, isPrimaryMain, showSampleWarning }: ScaleCardProps) {
+  const isMain = tier === 'primary-main' || isPrimaryMain
+  const cardCls = isMain
+    ? 'relative bg-[#f4ead8] border-2 border-[#c9a84c] rounded-lg px-[18px] py-4 transition-colors'
+    : 'relative bg-card2 border border-base rounded-lg px-[18px] py-4 hover:border-[rgba(154,122,46,0.28)] transition-colors'
+  const numSize = isMain ? 'text-[40px]' : 'text-[36px]'
   const numToneClass = (n: number) => (n > 0 ? 'text-red-700' : n < 0 ? 'text-green-700' : 'text-main')
 
   const label = result?.label ?? fallbackLabel
@@ -81,10 +80,7 @@ function ScaleCard({ result, fallbackLabel, fallbackWindowDesc, tier, showSample
   if (!result) {
     return (
       <div className={cardCls}>
-        <div className="flex items-baseline gap-2 flex-wrap">
-          <p className={`${titleSize} font-bold text-main`}>{label}</p>
-          {isReference && <span className="text-[10px] text-gold-dark px-1.5 py-0.5 rounded-full bg-[rgba(154,122,46,0.1)]">參考用</span>}
-        </div>
+        <p className="text-[18px] font-bold text-main">{label}</p>
         <p className="text-[11px] text-dim mb-3">{windowDesc}</p>
         <p className="text-small text-faint">資料不足</p>
       </div>
@@ -97,18 +93,17 @@ function ScaleCard({ result, fallbackLabel, fallbackWindowDesc, tier, showSample
 
   return (
     <div className={cardCls}>
-      <div className="flex items-baseline gap-2 flex-wrap">
-        <p className={`${titleSize} font-bold ${isReference ? 'text-dim' : 'text-main'}`}>{label}</p>
-        {isReference && (
-          <span className="text-[10px] text-gold-dark px-1.5 py-0.5 rounded-full bg-[rgba(154,122,46,0.1)]">
-            參考用
-          </span>
-        )}
-      </div>
+      {isMain && (
+        <div className="absolute top-2.5 right-3.5 flex items-center gap-1.5">
+          <span className="text-[10.5px] bg-gold-dark text-white px-2 py-0.5 rounded-full font-semibold">主判斷</span>
+          <span className="text-[18px]" aria-hidden>🏆</span>
+        </div>
+      )}
+      <p className="text-[18px] font-bold text-main">{label}</p>
       <p className="text-[11px] text-dim mb-3">{windowDesc}</p>
 
       <p className="text-[13px] text-dim mb-1">{L.evAnnual}</p>
-      <p className={`font-serif ${numSize} font-bold leading-none num ${numToneClass(result.evAnnual)} ${isReference ? 'opacity-90' : ''}`}>
+      <p className={`font-serif ${numSize} font-bold leading-none num ${numToneClass(result.evAnnual)}`}>
         {fmtPct(result.evAnnual)}
       </p>
 
@@ -116,12 +111,44 @@ function ScaleCard({ result, fallbackLabel, fallbackWindowDesc, tier, showSample
         {baseLabel} <span className="num font-semibold">{baseValue}</span>
       </p>
 
-      <p className={`text-[11px] mt-2 leading-[1.5] ${isReference ? 'text-faint' : 'text-dim'}`}>
+      <p className={`text-[11px] mt-2 leading-[1.5] ${isMain ? 'text-red-700 font-semibold' : 'text-dim'}`}>
         {result.ev.quadrant}
       </p>
       {showSampleWarning && (
         <p className="text-[10.5px] text-faint leading-[1.5]">樣本較小，年化誤差較大</p>
       )}
+    </div>
+  )
+}
+
+// ── Reference 橫向卡（最近 5 年） ─────────────────────────────────────────────
+
+function ReferenceRow({ result }: { result: ScaleEV | null }) {
+  if (!result) {
+    return (
+      <div className="bg-elevated border border-[rgba(154,122,46,0.12)] rounded-lg px-[18px] py-3 text-small text-faint">
+        最近 5 年 · 資料不足（需 ≥ 60 筆月報酬）
+      </div>
+    )
+  }
+  const numClass = result.evAnnual > 0 ? 'text-red-700' : result.evAnnual < 0 ? 'text-green-700' : 'text-main'
+  const baseLabel = result.freq === 'daily' ? L.evDaily : L.evMonthly
+  return (
+    <div className="bg-elevated border border-[rgba(154,122,46,0.12)] rounded-lg px-[18px] py-3 flex items-center flex-wrap gap-x-3.5 gap-y-1 opacity-95">
+      <span className="text-[16px] font-bold text-dim">{result.label}</span>
+      <span className="w-px h-3.5 bg-[rgba(154,122,46,0.18)]" />
+      <span className="text-[11.5px] text-dim">月報酬 {result.windowSize} 筆</span>
+      <span className="w-px h-3.5 bg-[rgba(154,122,46,0.18)]" />
+      <span className="text-[11.5px] text-dim">年化</span>
+      <span className={`font-serif text-[20px] font-bold num ${numClass}`}>
+        {fmtPct(result.evAnnual)}
+      </span>
+      <span className="w-px h-3.5 bg-[rgba(154,122,46,0.18)]" />
+      <span className="text-[11.5px] text-dim">
+        {baseLabel} <span className="num font-semibold text-red-700">{fmtPct(result.ev.ev, 2)}</span>
+      </span>
+      <span className="w-px h-3.5 bg-[rgba(154,122,46,0.18)]" />
+      <span className="text-[11.5px] text-dim">{result.ev.quadrant}</span>
     </div>
   )
 }
@@ -177,11 +204,9 @@ export default function MultiScaleEVBlock({
   // 主結論：優先用 medium（最近 1 年），其次 short，最後 long
   const primary = result.medium ?? result.short ?? result.long
   const primaryEv = primary?.ev
-  const primaryAnnualColor = primary ? colorByReturn(primary.evAnnual) : 'default'
-  const primaryLabel = primary?.label ?? '年化 EV'
   const hasOddsAdvantage = primaryEv ? primaryEv.actualOdds > primaryEv.breakEvenOdds : false
 
-  const title = titleOverride ?? '期望報酬與賠率優勢'
+  const title = titleOverride ?? '期望報酬與損益比優勢'
   const dailyLabel = dailyCountLabelOverride ?? `日報酬 ${dailyCount} 筆`
 
   return (
@@ -201,26 +226,7 @@ export default function MultiScaleEVBlock({
         </div>
       </div>
 
-      {/* Hero 列：以「最近 1 年年化期望報酬率」為主結論 */}
-      {primary && primaryEv && (
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-center">
-          <ResultCard
-            title={`${primaryLabel}・${L.evAnnual}`}
-            value={fmtPct(primary.evAnnual)}
-            color={primaryAnnualColor}
-            emphasis="hero"
-            subtitle={`${primary.freq === 'daily' ? L.evDaily : L.evMonthly} ${fmtPct(primaryEv.ev, 4)}（年化複利推估）`}
-          />
-          <div className="space-y-2">
-            <QuadrantBadge quadrant={primaryEv.quadrant} size="large" />
-            <p className={`text-body font-semibold ${hasOddsAdvantage ? 'text-red-700' : 'text-green-700'}`}>
-              賠率優勢：{hasOddsAdvantage ? '✓ 有優勢' : '✗ 無優勢'}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* 主要判斷：前 2 卡並排 */}
+      {/* 主要判斷：2 卡並排，medium 加金邊主判斷 chip + 🏆 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <ScaleCard
           result={result.short}
@@ -233,22 +239,20 @@ export default function MultiScaleEVBlock({
           result={result.medium}
           fallbackLabel="最近 1 年"
           fallbackWindowDesc="需 ≥ 240 筆日報酬"
-          tier="primary"
+          tier="primary-main"
         />
       </div>
 
-      {/* 參考用：第 3 卡單獨整行 */}
-      <ScaleCard
-        result={result.long}
-        fallbackLabel="最近 5 年"
-        fallbackWindowDesc="需 ≥ 60 筆月報酬"
-        tier="reference"
-      />
+      {/* 參考列：最近 5 年橫向 1 行 */}
+      <ReferenceRow result={result.long} />
 
-      {/* 主要尺度勝敗率 stats row — 用 .sdiv 直線分隔 */}
+      {/* 主要尺度勝敗率 stats row（含損益比優勢）— 用 .sdiv 直線分隔 */}
       {primaryEv && (
         <div className="border-t border-b border-base py-3 flex items-center flex-wrap gap-x-3.5 gap-y-1 text-small text-dim">
-          <span className="text-label text-faint tracking-wide">{primaryLabel}勝敗率與平均報酬</span>
+          <span className="font-semibold text-main">損益比優勢</span>
+          <span className={`font-semibold ${hasOddsAdvantage ? 'text-red-700' : 'text-green-700'}`}>
+            {hasOddsAdvantage ? '✓ 有優勢' : '✗ 無優勢'}
+          </span>
           <span className="w-px h-3 bg-[rgba(154,122,46,0.18)]" />
           <span>勝率 <span className="text-red-700 font-semibold num">{fmtWinRate(primaryEv.winRate)}</span></span>
           <span className="w-px h-3 bg-[rgba(154,122,46,0.18)]" />
