@@ -13,6 +13,32 @@ function fmtRatio(n: number, digits = 2): string {
   return n.toFixed(digits)
 }
 
+type MetricTone = 'pos' | 'neg' | 'neu' | 'red' | 'green' | 'default'
+const TONE_TO_CLASS: Record<MetricTone, string> = {
+  pos: 'pos',
+  red: 'pos',
+  neg: 'neg',
+  green: 'neg',
+  neu: 'neu',
+  default: 'neu',
+}
+
+function MetricCard({ label, value, tone = 'neu', note }: {
+  label: string
+  value: string
+  tone?: MetricTone
+  note?: string
+}) {
+  const toneClass = TONE_TO_CLASS[tone] ?? 'neu'
+  return (
+    <div className="metric-card">
+      <div className="metric-lbl">{label}</div>
+      <div className={`metric-val ${toneClass}`}>{value}</div>
+      {note && <div className="metric-note">{note}</div>}
+    </div>
+  )
+}
+
 export default function PortfolioPerformanceBlock({ performance: p }: Props) {
   const [stepsOpen, setStepsOpen] = useState(false)
 
@@ -45,46 +71,30 @@ export default function PortfolioPerformanceBlock({ performance: p }: Props) {
         </div>
       </div>
 
-      {/* 8 張主指標卡（2 列 × 4 欄桌機 / 2 欄手機）*/}
+      {/* 8 張 metric-card（2 列 × 4 欄桌機 / 2 欄手機） */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <ResultCard
-          title="總實現損益"
-          value={fmtMoney(p.totalPnl)}
-          color={colorByReturn(p.totalPnl)}
-        />
-        <ResultCard
-          title="整體報酬率"
+        <MetricCard label="總實現損益" value={fmtMoney(p.totalPnl)} tone={colorByReturn(p.totalPnl)} />
+        <MetricCard
+          label="整體報酬率"
           value={fmtPct(p.overallReturn)}
-          color={colorByReturn(p.overallReturn)}
-          subtitle={`年化 ${fmtPct(p.annualizedReturn)}`}
+          tone={colorByReturn(p.overallReturn)}
+          note={`年化 ${fmtPct(p.annualizedReturn)}`}
         />
-        <ResultCard title="整體勝率" value={fmtPct(p.winRate)} color="default" />
-        <ResultCard
-          title="獲利因子"
+        <MetricCard label="整體勝率" value={fmtPct(p.winRate)} tone="neu" />
+        <MetricCard
+          label="獲利因子"
           value={fmtRatio(p.profitFactor)}
-          color={isFinite(p.profitFactor) && p.profitFactor >= 2.0 ? 'red' : 'default'}
-          subtitle="總獲利 ÷ 總虧損"
+          tone={isFinite(p.profitFactor) && p.profitFactor >= 2.0 ? 'pos' : 'neu'}
+          note="總獲利 ÷ 總虧損"
         />
-        <ResultCard
-          title="平均持有天數"
-          value={`${p.avgHoldingDays.toFixed(1)} 天`}
-          color="default"
-        />
-        <ResultCard
-          title="勝場均報酬"
-          value={fmtPct(p.avgWinReturnRate)}
-          color={colorByReturn(p.avgWinReturnRate)}
-        />
-        <ResultCard
-          title="敗場均虧損"
-          value={fmtPct(p.avgLossReturnRate)}
-          color={colorByReturn(p.avgLossReturnRate)}
-        />
-        <ResultCard
-          title="損益比（賠率）"
+        <MetricCard label="平均持有天數" value={`${p.avgHoldingDays.toFixed(1)} 天`} tone="neu" />
+        <MetricCard label="勝場均報酬" value={fmtPct(p.avgWinReturnRate)} tone={colorByReturn(p.avgWinReturnRate)} />
+        <MetricCard label="敗場均虧損" value={fmtPct(p.avgLossReturnRate)} tone={colorByReturn(p.avgLossReturnRate)} />
+        <MetricCard
+          label="損益比（賠率）"
           value={fmtRatio(p.payoffRatio)}
-          color={isFinite(p.payoffRatio) && p.payoffRatio >= 1.5 ? 'red' : 'default'}
-          subtitle="平均獲利 ÷ 平均虧損"
+          tone={isFinite(p.payoffRatio) && p.payoffRatio >= 1.5 ? 'pos' : 'neu'}
+          note="平均獲利 ÷ 平均虧損"
         />
       </div>
 

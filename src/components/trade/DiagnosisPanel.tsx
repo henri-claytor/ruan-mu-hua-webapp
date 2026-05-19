@@ -4,50 +4,13 @@ interface Props {
   diagnoses: Diagnosis[]
 }
 
-interface LevelStyle {
-  emoji: string
-  bg: string
-  border: string
-  text: string
-  badge: string
-}
-
-const STYLES: Record<DiagnosisLevel, LevelStyle> = {
-  advantage: {
-    emoji: '🟢',
-    bg: 'bg-green-50',
-    border: 'border-green-200',
-    text: 'text-green-700',
-    badge: 'bg-green-100 text-green-700',
-  },
-  alert: {
-    emoji: '🔴',
-    bg: 'bg-red-50',
-    border: 'border-red-200',
-    text: 'text-red-700',
-    badge: 'bg-red-100 text-red-700',
-  },
-  warning: {
-    emoji: '🟡',
-    bg: 'bg-amber-50',
-    border: 'border-amber-200',
-    text: 'text-amber-700',
-    badge: 'bg-amber-100 text-amber-700',
-  },
-  note: {
-    emoji: '⚪',
-    bg: 'bg-blue-50',
-    border: 'border-blue-200',
-    text: 'text-blue-700',
-    badge: 'bg-blue-100 text-blue-700',
-  },
-  info: {
-    emoji: 'ℹ️',
-    bg: 'bg-elevated',
-    border: 'border-base',
-    text: 'text-dim',
-    badge: 'bg-base/30 text-dim',
-  },
+/** level → ui-spec diag-item 三色（ok / warn / bad）+ 圖示 */
+const LEVEL_TO_KIND: Record<DiagnosisLevel, 'ok' | 'warn' | 'bad'> = {
+  advantage: 'ok',
+  alert: 'bad',
+  warning: 'warn',
+  note: 'warn',
+  info: 'warn',
 }
 
 const LEVEL_LABEL: Record<DiagnosisLevel, string> = {
@@ -58,19 +21,49 @@ const LEVEL_LABEL: Record<DiagnosisLevel, string> = {
   info: '資訊',
 }
 
-function DiagnosisCard({ d }: { d: Diagnosis }) {
-  const style = STYLES[d.level]
+function DiagIcon({ kind }: { kind: 'ok' | 'warn' | 'bad' }) {
+  const stroke =
+    kind === 'ok' ? 'var(--color-negative)' :
+    kind === 'bad' ? 'var(--color-positive)' :
+    'var(--color-gold-dark)'
+  if (kind === 'ok') {
+    return (
+      <svg className="diag-icon" fill="none" stroke={stroke} strokeWidth="2" viewBox="0 0 24 24">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+    )
+  }
+  if (kind === 'bad') {
+    return (
+      <svg className="diag-icon" fill="none" stroke={stroke} strokeWidth="2" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="15" y1="9" x2="9" y2="15" />
+        <line x1="9" y1="9" x2="15" y2="15" />
+      </svg>
+    )
+  }
   return (
-    <div className={`${style.bg} border ${style.border} rounded-xl p-4 space-y-1.5`}>
-      <div className="flex items-baseline gap-2 flex-wrap">
-        <span className="text-body">{style.emoji}</span>
-        <span className={`text-body font-semibold ${style.text}`}>{d.title}</span>
-        <span className={`text-caption px-2 py-0.5 rounded-full ${style.badge}`}>
-          {LEVEL_LABEL[d.level]}
-        </span>
+    <svg className="diag-icon" fill="none" stroke={stroke} strokeWidth="2" viewBox="0 0 24 24">
+      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  )
+}
+
+function DiagnosisCard({ d }: { d: Diagnosis }) {
+  const kind = LEVEL_TO_KIND[d.level]
+  return (
+    <div className={`diag-item ${kind}`}>
+      <DiagIcon kind={kind} />
+      <div className="flex-1">
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span className={`diag-title ${kind}`}>{d.title}</span>
+          <span className="text-caption text-dim">{LEVEL_LABEL[d.level]}</span>
+        </div>
+        <p className="diag-desc mt-1">{d.message}</p>
+        <p className="diag-desc mt-0.5">→ {d.advice}</p>
       </div>
-      <p className="text-small text-main">{d.message}</p>
-      <p className={`text-small ${style.text}`}>→ {d.advice}</p>
     </div>
   )
 }

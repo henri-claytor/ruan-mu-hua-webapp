@@ -60,12 +60,7 @@ function CopyButton({ onCopy, disabled }: { onCopy: () => Promise<void>; disable
     setTimeout(() => setCopied(false), 1500)
   }
   return (
-    <button
-      onClick={handle}
-      disabled={disabled}
-      className="px-3 py-1.5 text-small bg-elevated border border-base rounded-lg text-dim
-                 hover:text-main disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-    >
+    <button onClick={handle} disabled={disabled} className="btn btn-ghost">
       {copied ? '已複製 ✓' : '複製摘要'}
     </button>
   )
@@ -256,12 +251,7 @@ export default function IndividualPage() {
           {/* Action buttons */}
           <div className="flex gap-2 justify-end">
             <CopyButton onCopy={handleCopy} disabled={!hasResult} />
-            <button
-              onClick={handleDownload}
-              disabled={!hasResult}
-              className="px-3 py-1.5 text-small bg-elevated border border-base rounded-lg text-dim
-                         hover:text-main disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
+            <button onClick={handleDownload} disabled={!hasResult} className="btn btn-solid">
               下載 PNG
             </button>
           </div>

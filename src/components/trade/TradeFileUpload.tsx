@@ -60,13 +60,17 @@ export default function TradeFileUpload({ onImport }: Props) {
         onDragLeave={() => setIsDragOver(false)}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-colors
-          ${isDragOver ? 'bg-blue-50 border-blue-300' : 'bg-elevated border-base hover:border-blue-300'}`}
+        className={`upload-area ${isDragOver ? 'border-[#9a7a2e] bg-[rgba(154,122,46,0.06)]' : ''}`}
       >
-        <p className="text-body text-dim">
+        <svg className="upload-icon mx-auto" width="36" height="36" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+          <polyline points="17 8 12 3 7 8" />
+          <line x1="12" y1="3" x2="12" y2="15" />
+        </svg>
+        <div className="upload-txt">
           {isDragOver ? '放開以上傳' : '拖放 CSV 檔案到此處，或點擊選擇檔案'}
-        </p>
-        <p className="text-caption text-faint mt-1">通用格式 13 欄（stock_id, stock_name, buy_date, ...）</p>
+        </div>
+        <div className="upload-sub">通用格式 13 欄（stock_id, stock_name, buy_date, ...）</div>
         <input
           ref={fileInputRef}
           type="file"
@@ -117,16 +121,10 @@ export default function TradeFileUpload({ onImport }: Props) {
             {parsedTrades.length > 5 && <div>...及其餘 {parsedTrades.length - 5} 筆</div>}
           </div>
           <div className="flex gap-2 pt-2">
-            <button
-              onClick={confirmImport}
-              className="px-4 py-1.5 bg-blue-600 text-surface rounded-lg text-small hover:bg-blue-700"
-            >
+            <button onClick={confirmImport} className="btn btn-solid">
               確認匯入 {parsedTrades.length} 筆
             </button>
-            <button
-              onClick={cancel}
-              className="px-3 py-1.5 bg-elevated border border-base rounded-lg text-small text-dim hover:text-main"
-            >
+            <button onClick={cancel} className="btn btn-ghost">
               取消
             </button>
           </div>
