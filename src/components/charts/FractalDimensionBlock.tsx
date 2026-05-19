@@ -24,23 +24,23 @@ function bannerStyle(d: Divergence): BannerStyle {
   switch (d) {
     case 'stable':
       return {
-        text: '三尺度 D 值一致，路徑粗糙性穩定',
+        text: '三尺度 D 值一致，走勢規律性穩定',
         bg: 'bg-elevated',
         border: 'border-base',
         textColor: 'text-dim',
       }
     case 'short-strengthening':
-      // H 短 > 長 → D 短 < 長：近期路徑變平滑 / 動能轉強
+      // H 短 > 長 → D 短 < 長：近期走勢更規律 / 動能轉強
       return {
-        text: '⚠ 短期路徑變平滑：近期動能轉強（D 值降低）',
+        text: '⚠ 短期走勢更規律：近期動能轉強（D 值降低）',
         bg: 'bg-amber-50',
         border: 'border-amber-200',
         textColor: 'text-amber-700',
       }
     case 'short-weakening':
-      // H 短 < 長 → D 短 > 長：近期路徑變鋸齒 / 動能減弱
+      // H 短 < 長 → D 短 > 長：近期走勢更雜亂 / 動能減弱
       return {
-        text: '⚠ 短期路徑變鋸齒：近期動能減弱（D 值升高）',
+        text: '⚠ 短期走勢更雜亂：近期動能減弱（D 值升高）',
         bg: 'bg-amber-50',
         border: 'border-amber-200',
         textColor: 'text-amber-700',
@@ -140,7 +140,7 @@ function FractalSpectrum({ dShort, dMedium, dLong }: SpectrumProps) {
   return (
     <div className="bg-elevated rounded-xl p-5 space-y-3">
       <p className="text-caption text-dim text-center">
-        分形維度光譜（1.0 → 2.0）· 越接近 1 越平滑、越接近 2 越鋸齒
+        D 值光譜（1.0 → 2.0）· 越接近 1 走勢越規律、越接近 2 走勢越雜亂
       </p>
       <div className="relative h-16">
         {/* 5 區段背景 */}
@@ -202,10 +202,10 @@ export default function FractalDimensionBlock({ hurst }: Props) {
       >
         <div>
           <h2 className="font-serif text-h2 font-bold text-main tracking-wide text-left">
-            路徑粗糙性偵測
+            走勢規律性偵測
           </h2>
           <p className="text-caption text-faint text-left mt-0.5">
-            分形維度 D（D = 2 − H）· 60/120/240 日多尺度 · 量化價格序列的「粗糙度」
+            分形維度 D（D = 2 − H）· 60/120/240 日多尺度 · 量化走勢「規律 vs 雜亂」的程度
           </p>
         </div>
         <span className="text-faint text-small">{open ? '▼ 收折' : '▶ 展開'}</span>
@@ -293,7 +293,7 @@ export default function FractalDimensionBlock({ hurst }: Props) {
                   </tbody>
                 </table>
                 <p className="text-dim pt-2 border-t border-base">
-                  D 範圍 [1, 2]：D ≈ 1.5 為純隨機；D &lt; 1.5 表示路徑平滑（有趨勢）；D &gt; 1.5 表示路徑鋸齒（均值回歸）。
+                  D 範圍 [1, 2]：D ≈ 1.5 為純隨機；D &lt; 1.5 表示走勢規律（趨勢延續）；D &gt; 1.5 表示走勢雜亂（均值回歸 / 逆勢）。
                 </p>
               </div>
             )}
