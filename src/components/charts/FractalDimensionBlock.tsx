@@ -6,6 +6,7 @@ import {
   fractalRegimeLabel,
   type FractalRegime,
 } from '../../lib/fractalDimension'
+import { fmtRatio } from '../../utils/format'
 
 interface Props {
   hurst: MultiScaleHurstResult
@@ -97,7 +98,7 @@ function ScaleCard({ label, windowDesc, scale, showSampleWarning }: ScaleCardPro
           <div className="bg-card2 border border-base rounded-xl px-4 py-3 text-center">
             <p className="text-[10.5px] text-dim tracking-[1px] mb-1">分形維度 D</p>
             <p className={`font-serif text-display font-bold leading-none num ${numClass}`}>
-              {d.toFixed(2)}
+              {fmtRatio(d)}
             </p>
           </div>
           <div className="text-center">
@@ -169,7 +170,7 @@ function FractalSpectrum({ dShort, dMedium, dLong }: SpectrumProps) {
             style={{ left: `${toX(m.d)}%`, transform: 'translateX(-50%)' }}
           >
             <span className="text-caption font-semibold whitespace-nowrap" style={{ color: m.color }}>
-              {m.label} {m.d.toFixed(2)}
+              {m.label} {fmtRatio(m.d)}
             </span>
             <div className="w-px h-7 mt-0.5" style={{ background: m.color }} />
             <div

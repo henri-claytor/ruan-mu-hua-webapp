@@ -2,7 +2,7 @@ import { useState } from 'react'
 import ResultCard from '../ResultCard'
 import QuadrantBadge from '../QuadrantBadge'
 import type { MultiScaleEVResult, ScaleEV, EVDivergence } from '../../lib/ev'
-import { fmtPct, colorByReturn } from '../../utils/format'
+import { fmtPct, fmtWinRate, colorByReturn } from '../../utils/format'
 
 // ── Divergence banner ─────────────────────────────────────────────────────────
 
@@ -238,9 +238,9 @@ export default function MultiScaleEVBlock({
         <div className="border-t border-b border-base py-3 flex items-center flex-wrap gap-x-3.5 gap-y-1 text-small text-dim">
           <span className="text-label text-faint tracking-wide">{primaryLabel}勝敗率與平均盈虧</span>
           <span className="w-px h-3 bg-[rgba(154,122,46,0.18)]" />
-          <span>勝率 <span className="text-red-700 font-semibold num">{(primaryEv.winRate * 100).toFixed(2)}%</span></span>
+          <span>勝率 <span className="text-red-700 font-semibold num">{fmtWinRate(primaryEv.winRate)}</span></span>
           <span className="w-px h-3 bg-[rgba(154,122,46,0.18)]" />
-          <span>敗率 <span className="text-green-700 font-semibold num">{(primaryEv.lossRate * 100).toFixed(2)}%</span></span>
+          <span>敗率 <span className="text-green-700 font-semibold num">{fmtWinRate(primaryEv.lossRate)}</span></span>
           <span className="w-px h-3 bg-[rgba(154,122,46,0.18)]" />
           <span>Avg Gain <span className="text-red-700 font-semibold num">{fmtPct(primaryEv.avgGain)}</span></span>
           <span className="w-px h-3 bg-[rgba(154,122,46,0.18)]" />

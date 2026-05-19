@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap');
 
 /* ── 課程質感 Theme Design Tokens ── */
 @theme {
@@ -74,10 +74,10 @@
   --color-amber-600: #9a7a2e;
   --color-amber-700: #9a7a2e;
 
-  /* Font families */
+  /* Font families — 全站統一 Noto Sans TC */
   --font-sans: 'Noto Sans TC', system-ui, -apple-system, sans-serif;
-  --font-serif: 'Noto Serif TC', Georgia, serif;
-  --font-num: 'Noto Serif TC', Georgia, serif;  /* numbers use serif for journal feel */
+  --font-serif: 'Noto Sans TC', system-ui, -apple-system, sans-serif;  /* alias → sans，避免大規模 markup 變更 */
+  --font-num: 'Noto Sans TC', system-ui, -apple-system, sans-serif;
 
   /* Font Size Tokens */
   --text-hero: 2.125rem;     /* 34px — HomePage hero */
@@ -104,9 +104,9 @@ body {
 }
 
 /* ── Typography helpers ── */
-.font-serif { font-family: var(--font-serif); }
+.font-serif { font-family: var(--font-sans); }  /* legacy alias */
 .num {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
   letter-spacing: 0;
