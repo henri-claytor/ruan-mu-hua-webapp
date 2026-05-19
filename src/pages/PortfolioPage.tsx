@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, useMemo } from 'react'
 import StockSelector from '../components/StockSelector'
-import ResultCard from '../components/ResultCard'
 import FanChart from '../components/charts/FanChart'
 import VarHistogram from '../components/charts/VarHistogram'
 import MultiScaleEVBlock from '../components/charts/MultiScaleEVBlock'
 import MultiScaleHurstBlock from '../components/charts/MultiScaleHurstBlock'
+import FractalDimensionBlock from '../components/charts/FractalDimensionBlock'
 import StockVsPortfolioComparison, { type StockComparisonInput } from '../components/trade/StockVsPortfolioComparison'
 import { calcEV, calcMultiScaleEV, calcPortfolioMultiScaleEV, type MultiScaleEVResult } from '../lib/ev'
 import { calcVaR, type VaRResult } from '../lib/var'
@@ -14,7 +14,7 @@ import { calcPortfolioReturns } from '../lib/portfolio'
 import { fetchMonthlyReturns, fetchDailyReturns } from '../lib/api'
 import { useAppStore, type Stock } from '../store/useAppStore'
 import ActionGuide, { buildPortfolioGuide, classifyVarLevel, type VarLevel } from '../components/ActionGuide'
-import { fmtPct, colorByReturn } from '../utils/format'
+import { fmtPct } from '../utils/format'
 import {
   buildPortfolioSummary,
   copyTextToClipboard,
@@ -217,6 +217,25 @@ export default function PortfolioPage() {
 
   const ready = hasData && weightValid && portMonthly.length > 0 && !isAnyLoading
 
+  // 手動「計算組合」狀態：stocks / weights / 任何 fetch 完成都會 reset
+  const [computed, setComputed] = useState(false)
+  useEffect(() => {
+    setComputed(false)
+  }, [stocks, hasData, weightValid, portMonthly.length])
+
+  function handleCompute() {
+    if (!ready) return
+    setComputed(true)
+  }
+
+  const computeButtonLabel = isAnyLoading
+    ? '載入中...'
+    : !ready
+    ? '計算組合'
+    : computed
+    ? '重新計算'
+    : '計算組合'
+
   const selectedCodes = stocks.map((s) => s.code).filter(Boolean)
 
   // ── 股票選取區塊摺疊狀態：未完成輸入 → 展開；完成 → 收合 ──────────────────────
@@ -355,18 +374,29 @@ export default function PortfolioPage() {
 
             {!ready && !isAnyLoading && (
               <p className="text-small text-faint">
-                選取所有股票並設定比重合計 100% 後，分析結果將自動顯示。
+                選取所有股票並設定比重合計 100%，再按「計算組合」。
               </p>
             )}
             {isAnyLoading && (
               <p className="text-small text-blue-600 animate-pulse">正在載入股票數據，請稍候...</p>
             )}
+
+            {/* 「計算組合」按鈕 — 與個股頁「查詢」一致 */}
+            <div className="flex justify-end">
+              <button
+                onClick={handleCompute}
+                disabled={!ready || isAnyLoading}
+                className="btn btn-solid"
+              >
+                {computeButtonLabel}
+              </button>
+            </div>
           </div>
         )}
       </div>
 
       {/* ── Results ── */}
-      {ready && evResult && varResult && mcResult && (
+      {computed && ready && evResult && varResult && mcResult && (
         <div ref={resultRef} className="space-y-4">
           <div className="flex gap-2 justify-end">
             <CopyButton onCopy={handleCopy} disabled={!ready} />
@@ -375,13 +405,25 @@ export default function PortfolioPage() {
             </button>
           </div>
 
-          {/* 1. 組合期望報酬與賠率優勢（多尺度年化 EV） */}
+          {/* 1. 操作建議（移到頂部 — 結論優先） */}
+          <ActionGuide
+            items={buildPortfolioGuide({
+              ev: evResult.ev,
+              varLevel: classifyVarLevel(varResult.var95),
+              hurstH: hurstMulti?.short.h ?? null,
+              stockCount: stocks.length,
+              evDivergence: evMulti?.divergence,
+              hurstDivergence: hurstMulti?.divergence,
+            })}
+          />
+
+          {/* 2. 組合期望報酬與損益比優勢（多尺度年化期望報酬率） */}
           {evMulti ? (
             <MultiScaleEVBlock
               result={evMulti}
               monthlyCount={portMonthly.length}
               dailyCount={minDailyCount}
-              titleOverride="組合期望報酬與賠率優勢"
+              titleOverride="組合期望報酬與損益比優勢"
               dailyCountLabelOverride={
                 allHave240Daily || minDailyCount >= 60
                   ? `日報酬最少 ${minDailyCount} 筆`
@@ -391,13 +433,13 @@ export default function PortfolioPage() {
           ) : (
             <div className="bg-elevated border border-base rounded-2xl px-6 py-4">
               <p className="text-small text-dim">
-                <span className="font-semibold text-main">組合期望報酬與賠率優勢未顯示：</span>
+                <span className="font-semibold text-main">組合期望報酬與損益比優勢未顯示：</span>
                 組合月報酬資料不足 5 年（{portMonthly.length} 筆 &lt; 60），無法使用多尺度 EV。
               </p>
             </div>
           )}
 
-          {/* 1.5 個股 vs 組合對比（EV / VaR / Hurst 三維度） */}
+          {/* 3. 個股 vs 組合對比（EV / VaR / Hurst 三維度） */}
           {evMulti && varResult && (
             <StockVsPortfolioComparison
               portfolioEV={evMulti}
@@ -407,10 +449,10 @@ export default function PortfolioPage() {
             />
           )}
 
-          {/* 2. 組合下行風險 */}
+          {/* 4. 組合下行風險 */}
           <PortfolioVarBlock varResult={varResult} returnsForRisk={portForRisk} freqLabel={freqLabel} />
 
-          {/* 3. 組合趨勢延續性偵測（嚴格多尺度 — 與個股頁一致） */}
+          {/* 5. 組合趨勢延續性偵測 */}
           {hurstMulti ? (
             <MultiScaleHurstBlock result={hurstMulti} titleOverride="組合趨勢延續性偵測" />
           ) : (
@@ -425,20 +467,11 @@ export default function PortfolioPage() {
             </div>
           )}
 
-          {/* 4. 組合未來淨值模擬 */}
-          <PortfolioMcBlock mcResult={mcResult} monthlyCount={portMonthly.length} />
+          {/* 6. 組合走勢規律性偵測（分形維度 D） */}
+          {hurstMulti && <FractalDimensionBlock hurst={hurstMulti} />}
 
-          {/* 5. 建議行動參考（含 divergence 訊號） */}
-          <ActionGuide
-            items={buildPortfolioGuide({
-              ev: evResult.ev,
-              varLevel: classifyVarLevel(varResult.var95),
-              hurstH: hurstMulti?.short.h ?? null,
-              stockCount: stocks.length,
-              evDivergence: evMulti?.divergence,
-              hurstDivergence: hurstMulti?.divergence,
-            })}
-          />
+          {/* 7. 組合未來淨值模擬 */}
+          <PortfolioMcBlock mcResult={mcResult} monthlyCount={portMonthly.length} />
         </div>
       )}
     </div>
@@ -458,41 +491,51 @@ function PortfolioVarBlock({
 }) {
   const level = classifyVarLevel(varResult.var95)
   const levelLabel = VAR_LEVEL_LABEL[level]
+  const levelClass =
+    level === 'low'  ? 'bg-green-50 text-green-700 border-green-300' :
+    level === 'mid'  ? 'bg-amber-50 text-amber-700 border-amber-300' :
+                       'bg-red-50 text-red-700 border-red-300'
+  const var95Pct = (Math.abs(varResult.var95) * 100).toFixed(1)
+  const var99Pct = (Math.abs(varResult.var99) * 100).toFixed(1)
+  const nSamples = returnsForRisk.length
+
   return (
     <SectionBlock
       title="組合下行風險：最壞情境虧損"
-      subtitle={`VaR 95% / 99% · 使用${freqLabel}`}
+      subtitle={`使用 ${freqLabel}`}
     >
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-center">
-        <ResultCard
-          title="組合 VaR 95%"
-          value={fmtPct(varResult.var95)}
-          color={colorByReturn(varResult.var95)}
-          emphasis="hero"
-          subtitle={`有 5% 機率虧損超過 ${(Math.abs(varResult.var95) * 100).toFixed(2)}%`}
-        />
-        <span
-          className={`inline-block px-4 py-2 rounded-xl text-h2 font-bold border-2
-            ${level === 'low'  ? 'bg-green-50  border-green-300  text-green-700'  : ''}
-            ${level === 'mid'  ? 'bg-amber-50  border-amber-300  text-amber-700'  : ''}
-            ${level === 'high' ? 'bg-red-50    border-red-300    text-red-700'    : ''}`}
-        >
-          {levelLabel}
-        </span>
+      {/* 主卡：95% 下行虧損 */}
+      <div className="relative bg-[#f4ead8] border-2 border-[#c9a84c] rounded-lg px-[18px] py-4">
+        <div className="absolute top-2.5 right-3.5 flex items-center gap-1.5">
+          <span className="text-[10.5px] bg-gold-dark text-white px-2 py-0.5 rounded-full font-semibold">主判斷</span>
+          <span className={`text-[10.5px] px-2 py-0.5 rounded-full border ${levelClass} font-semibold`}>
+            {levelLabel}
+          </span>
+        </div>
+        <p className="text-[18px] font-bold text-main">組合 95% 下行虧損</p>
+        <p className="text-[11px] text-dim mb-3">{nSamples} 筆樣本</p>
+
+        <p className="text-[13px] text-dim mb-1">第 5 百分位</p>
+        <p className="font-serif text-[40px] font-bold leading-none num text-green-700">
+          {fmtPct(varResult.var95)}
+        </p>
+        <p className="text-[11px] text-dim mt-2">有 5% 機率虧損超過 <span className="num font-semibold">{var95Pct}%</span></p>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="flex-shrink-0 md:w-64">
-          <ResultCard
-            title="VaR 99%"
-            value={fmtPct(varResult.var99)}
-            subtitle={`有 1% 機率虧損超過 ${(Math.abs(varResult.var99) * 100).toFixed(2)}%`}
-            color={colorByReturn(varResult.var99)}
-          />
-        </div>
-        <div className="flex-1 min-w-0">
-          <VarHistogram returns={returnsForRisk} var95={varResult.var95} var99={varResult.var99} />
-        </div>
+      {/* 99% 橫向參考列 */}
+      <div className="bg-elevated border border-[rgba(154,122,46,0.12)] rounded-lg px-[18px] py-3 flex items-center flex-wrap gap-x-3.5 gap-y-1">
+        <span className="text-[16px] font-bold text-dim">99% 下行虧損</span>
+        <span className="w-px h-3.5 bg-[rgba(154,122,46,0.18)]" />
+        <span className="text-[11.5px] text-dim">第 1 百分位</span>
+        <span className="w-px h-3.5 bg-[rgba(154,122,46,0.18)]" />
+        <span className="font-serif text-[20px] font-bold num text-green-700">{fmtPct(varResult.var99)}</span>
+        <span className="w-px h-3.5 bg-[rgba(154,122,46,0.18)]" />
+        <span className="text-[11.5px] text-dim">有 1% 機率虧損超過 <span className="num font-semibold">{var99Pct}%</span></span>
+      </div>
+
+      {/* Histogram */}
+      <div>
+        <VarHistogram returns={returnsForRisk} var95={varResult.var95} var99={varResult.var99} />
       </div>
     </SectionBlock>
   )
@@ -500,61 +543,51 @@ function PortfolioVarBlock({
 
 
 function PortfolioMcBlock({ mcResult, monthlyCount }: { mcResult: MonteCarloResult; monthlyCount: number }) {
-  const fiveYr = mcResult.fiveYear
-  const heroColor = fiveYr.p50 >= 1_000_000 ? 'green' : fiveYr.p50 >= 800_000 ? 'yellow' : 'red'
+  const horizons = [
+    { label: '1 年', data: mcResult.oneYear, isPrimaryMain: false },
+    { label: '3 年', data: mcResult.threeYear, isPrimaryMain: false },
+    { label: '5 年', data: mcResult.fiveYear, isPrimaryMain: true },
+  ] as const
+
   return (
     <SectionBlock
       title="組合未來淨值模擬"
-      subtitle={`蒙地卡羅，初始 100 萬，模擬 100 條路徑 · 使用組合月報酬 ${monthlyCount} 筆`}
+      subtitle={`蒙地卡羅 · 初始 100 萬 / 模擬 100 條路徑 · 組合月報酬 ${monthlyCount} 筆`}
     >
-      <ResultCard
-        title="5 年中位數情境（P50）"
-        value={fmtWan(fiveYr.p50)}
-        color={heroColor}
-        emphasis="hero"
-        subtitle={`期望範圍 P5: ${fmtWan(fiveYr.p5)} ~ P95: ${fmtWan(fiveYr.p95)}`}
-      />
-
-      <div className="grid grid-cols-3 gap-3">
-        {([
-          { label: '1 年', data: mcResult.oneYear },
-          { label: '3 年', data: mcResult.threeYear },
-          { label: '5 年', data: mcResult.fiveYear },
-        ] as const).map(({ label, data }) => (
-          <div key={label} className="bg-elevated rounded-xl p-4">
-            <p className="text-small font-semibold text-dim mb-2">{label}</p>
-            <div className="space-y-1">
-              <div className="flex justify-between text-small">
-                <span className="text-green-700 font-medium">P95</span>
-                <span className="num text-main">{(data.p95 / 10000).toFixed(1)} 萬</span>
-              </div>
-              <div className="flex justify-between text-small">
-                <span className="text-blue-600 font-medium">P50</span>
-                <span className="num text-main">{(data.p50 / 10000).toFixed(1)} 萬</span>
-              </div>
-              <div className="flex justify-between text-small">
-                <span className="text-red-600 font-medium">P5</span>
-                <span className="num text-main">{(data.p5 / 10000).toFixed(1)} 萬</span>
-              </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {horizons.map(({ label, data, isPrimaryMain }) => {
+          const cardCls = isPrimaryMain
+            ? 'relative bg-[#f4ead8] border-2 border-[#c9a84c] rounded-lg px-[18px] py-4'
+            : 'bg-card2 border border-base rounded-lg px-[18px] py-4'
+          const numSize = isPrimaryMain ? 'text-[40px]' : 'text-[36px]'
+          const numClass = data.p50 >= 1_000_000 ? 'text-red-700' : data.p50 >= 800_000 ? 'text-amber-700' : 'text-green-700'
+          return (
+            <div key={label} className={cardCls}>
+              {isPrimaryMain && (
+                <div className="absolute top-2.5 right-3.5 flex items-center gap-1.5">
+                  <span className="text-[10.5px] bg-gold-dark text-white px-2 py-0.5 rounded-full font-semibold">主判斷</span>
+                </div>
+              )}
+              <p className="text-[18px] font-bold text-main">{label}</p>
+              <p className="text-[11px] text-dim mb-3">投影終值</p>
+              <p className="text-[13px] text-dim mb-1">中位情境</p>
+              <p className={`font-serif ${numSize} font-bold leading-none num ${numClass}`}>
+                {fmtWan(data.p50)}
+              </p>
+              <p className="text-[11px] text-dim mt-2">
+                悲觀 <span className="num font-semibold">{fmtWan(data.p5)}</span> ~ 樂觀 <span className="num font-semibold">{fmtWan(data.p95)}</span>
+              </p>
+              {isPrimaryMain && (
+                <p className="text-[11px] text-dim mt-1">
+                  μ=<span className="num font-semibold">{fmtPct(mcResult.mu, 2)}</span> / σ=<span className="num font-semibold">{fmtPct(mcResult.sigma, 2)}</span>
+                </p>
+              )}
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       <FanChart paths={mcResult.allPathsMonthly} />
-
-      <div className="border-t border-base pt-3">
-        <p className="text-label text-faint mb-1.5">模擬基本參數</p>
-        <p className="text-small text-dim num">
-          μ（月均報酬）<span className={`font-semibold ${mcResult.mu > 0 ? 'text-red-700' : mcResult.mu < 0 ? 'text-green-700' : 'text-main'}`}>{fmtPct(mcResult.mu, 4)}</span>
-          {' · '}
-          σ（月報酬標準差）<span className="font-semibold">{(mcResult.sigma * 100).toFixed(4)}%</span>
-          {' · '}
-          模擬路徑數 <span className="font-semibold">100 條</span>
-          {' · '}
-          組合月報酬筆數 <span className="font-semibold">{monthlyCount} 筆</span>
-        </p>
-      </div>
     </SectionBlock>
   )
 }
