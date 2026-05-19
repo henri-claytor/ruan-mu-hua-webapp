@@ -5,6 +5,7 @@ import ResultCard from '../components/ResultCard'
 import VarHistogram from '../components/charts/VarHistogram'
 import FanChart from '../components/charts/FanChart'
 import MultiScaleHurstBlock from '../components/charts/MultiScaleHurstBlock'
+import FractalDimensionBlock from '../components/charts/FractalDimensionBlock'
 import MultiScaleEVBlock from '../components/charts/MultiScaleEVBlock'
 import { calcMultiScaleEV, type MultiScaleEVResult } from '../lib/ev'
 import { calcVaR, type VaRResult } from '../lib/var'
@@ -327,6 +328,9 @@ export default function IndividualPage() {
               </p>
             </div>
           )}
+
+          {/* 3b. 技術指標：分形維度 D（依 Hurst 推算） */}
+          {results.hurst && <FractalDimensionBlock hurst={results.hurst} />}
 
           {/* 4. 未來資產淨值模擬（蒙地卡羅） */}
           <McBlock mcResult={results.mc} monthlyCount={results.monthlyCount} />
