@@ -484,24 +484,24 @@ describe('buildStockDiagSummary', () => {
     expect(buildStockDiagSummary(s)).toBe('3 筆全勝，樣本少參考性有限')
   })
 
-  it('賠率偏低 → 結構脆弱', () => {
+  it('損益比偏低 → 結構脆弱', () => {
     const s = makeStats({
       nWins: 7,
       nLosses: 2,
       payoffRatio: 0.47,
       profitFactor: 1.8,
     })
-    expect(buildStockDiagSummary(s)).toBe('賠率 0.47 偏低，靠勝率撐場，結構脆弱')
+    expect(buildStockDiagSummary(s)).toBe('損益比 0.47 偏低，靠勝率撐場，結構脆弱')
   })
 
-  it('資金管理問題（高賠率但低 PF）', () => {
+  it('資金管理問題（高損益比但低 PF）', () => {
     const s = makeStats({
       nWins: 1,
       nLosses: 2,
       payoffRatio: 2.18,
       profitFactor: 0.32,
     })
-    expect(buildStockDiagSummary(s)).toBe('邏輯對（賠率 2.18）但押注管理有問題（PF 0.32）')
+    expect(buildStockDiagSummary(s)).toBe('邏輯對（損益比 2.18）但押注管理有問題（PF 0.32）')
   })
 
   it('集中度高', () => {
@@ -521,7 +521,7 @@ describe('buildStockDiagSummary', () => {
       profitFactor: 449.5,
       pnlContribution: 0.1,
     })
-    expect(buildStockDiagSummary(s)).toBe('打法與結果雙優（賠率 6.15、PF 449.5）')
+    expect(buildStockDiagSummary(s)).toBe('打法與結果雙優（損益比 6.15、PF 449.5）')
   })
 
   it('樣本不足', () => {

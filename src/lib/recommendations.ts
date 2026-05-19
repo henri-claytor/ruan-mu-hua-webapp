@@ -56,7 +56,7 @@ export function buildRecommendations(
     recs.push({
       id: `rec-low-payoff-${stock.stockId}`,
       title: `改善 ${stock.stockName} 操作方式`,
-      body: `${stock.stockName} 賠率 ${payoff} 代表打法本身有問題——平均虧損幅度是獲利的 ${ratio} 倍。若要繼續操作此標的，需調整進出場策略，或縮小部位以控制整體風險。`,
+      body: `${stock.stockName} 損益比 ${payoff} 代表打法本身有問題——平均虧損幅度是獲利的 ${ratio} 倍。若要繼續操作此標的，需調整進出場策略，或縮小部位以控制整體風險。`,
       priority: 2,
       scope: 'specific-stock',
       stockId: stock.stockId,
@@ -73,7 +73,7 @@ export function buildRecommendations(
     recs.push({
       id: `rec-money-mgmt-${stock.stockId}`,
       title: `檢討 ${stock.stockName} 押注管理`,
-      body: `${stock.stockName} 是「邏輯對但執行錯」的典型案例。賠率 ${payoff} 顯示打法尚可，但獲利因子 ${pf} 代表虧損筆部位遠大於獲利筆，屬資金管理問題。`,
+      body: `${stock.stockName} 是「邏輯對但執行錯」的典型案例。損益比 ${payoff} 顯示打法尚可，但獲利因子 ${pf} 代表虧損筆部位遠大於獲利筆，屬資金管理問題。`,
       priority: 3,
       scope: 'specific-stock',
       stockId: stock.stockId,

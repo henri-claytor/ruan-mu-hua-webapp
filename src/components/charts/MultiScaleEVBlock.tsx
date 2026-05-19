@@ -3,6 +3,7 @@ import ResultCard from '../ResultCard'
 import QuadrantBadge from '../QuadrantBadge'
 import type { MultiScaleEVResult, ScaleEV, EVDivergence } from '../../lib/ev'
 import { fmtPct, fmtWinRate, colorByReturn } from '../../utils/format'
+import { METRIC_LABELS as L } from '../../lib/labels'
 
 // ── Divergence banner ─────────────────────────────────────────────────────────
 
@@ -62,11 +63,11 @@ interface ScaleCardProps {
 
 function ScaleCard({ result, fallbackLabel, fallbackWindowDesc, tier, showSampleWarning }: ScaleCardProps) {
   const isReference = tier === 'reference'
-  // primary 用 bg-card2（cream），reference 用 bg-elevated（弱化）
   const cardCls = isReference
     ? 'bg-elevated border border-[rgba(154,122,46,0.12)] rounded-lg px-[18px] py-4 opacity-90'
     : 'bg-card2 border border-base rounded-lg px-[18px] py-4 hover:border-[rgba(154,122,46,0.28)] transition-colors'
-  const numSize = isReference ? 'text-[20px]' : 'text-[24px]'
+  const numSize = isReference ? 'text-[28px]' : 'text-[36px]'
+  const titleSize = isReference ? 'text-[16px]' : 'text-[18px]'
   const numToneClass = (n: number) => (n > 0 ? 'text-red-700' : n < 0 ? 'text-green-700' : 'text-main')
 
   const label = result?.label ?? fallbackLabel
@@ -81,30 +82,41 @@ function ScaleCard({ result, fallbackLabel, fallbackWindowDesc, tier, showSample
     return (
       <div className={cardCls}>
         <div className="flex items-baseline gap-2 flex-wrap">
-          <p className="text-[10.5px] text-dim tracking-[1.5px]">{label}</p>
+          <p className={`${titleSize} font-bold text-main`}>{label}</p>
           {isReference && <span className="text-[10px] text-gold-dark px-1.5 py-0.5 rounded-full bg-[rgba(154,122,46,0.1)]">參考用</span>}
         </div>
-        <p className="text-[10.5px] text-[#9a8a70] mb-3">{windowDesc}</p>
+        <p className="text-[11px] text-dim mb-3">{windowDesc}</p>
         <p className="text-small text-faint">資料不足</p>
       </div>
     )
   }
+
+  // 底層值：日/月平均報酬率（單期 EV）
+  const baseLabel = result.freq === 'daily' ? L.evDaily : L.evMonthly
+  const baseValue = fmtPct(result.ev.ev, 2)
+
   return (
     <div className={cardCls}>
       <div className="flex items-baseline gap-2 flex-wrap">
-        <p className={`text-[10.5px] tracking-[1.5px] ${isReference ? 'text-dim' : 'text-dim'}`}>{label}</p>
+        <p className={`${titleSize} font-bold ${isReference ? 'text-dim' : 'text-main'}`}>{label}</p>
         {isReference && (
           <span className="text-[10px] text-gold-dark px-1.5 py-0.5 rounded-full bg-[rgba(154,122,46,0.1)]">
             參考用
           </span>
         )}
       </div>
-      <p className="text-[10.5px] text-[#9a8a70] mb-3">{windowDesc}</p>
-      <p className="text-[10.5px] text-dim tracking-[1px] mb-1">年化 EV</p>
+      <p className="text-[11px] text-dim mb-3">{windowDesc}</p>
+
+      <p className="text-[13px] text-dim mb-1">{L.evAnnual}</p>
       <p className={`font-serif ${numSize} font-bold leading-none num ${numToneClass(result.evAnnual)} ${isReference ? 'opacity-90' : ''}`}>
         {fmtPct(result.evAnnual)}
       </p>
-      <p className={`text-[10.5px] mt-2 leading-[1.5] ${isReference ? 'text-faint' : 'text-dim'}`}>
+
+      <p className="text-[11px] text-dim mt-2">
+        {baseLabel} <span className="num font-semibold">{baseValue}</span>
+      </p>
+
+      <p className={`text-[11px] mt-2 leading-[1.5] ${isReference ? 'text-faint' : 'text-dim'}`}>
         {result.ev.quadrant}
       </p>
       {showSampleWarning && (
@@ -177,7 +189,7 @@ export default function MultiScaleEVBlock({
       <div>
         <h2 className="font-serif text-h2 font-bold text-main tracking-wide">{title}</h2>
         <p className="text-caption text-faint mt-0.5">
-          多尺度年化 EV（最近 3 個月 · 最近 1 年 · 最近 5 年參考）· 月報酬 {monthlyCount} 筆 + {dailyLabel}
+          多尺度{L.evAnnual}（最近 3 個月 · 最近 1 年 · 最近 5 年參考）· 月報酬 {monthlyCount} 筆 + {dailyLabel}
         </p>
       </div>
 
@@ -189,15 +201,15 @@ export default function MultiScaleEVBlock({
         </div>
       </div>
 
-      {/* Hero 列：以「最近 1 年年化 EV」為主結論 */}
+      {/* Hero 列：以「最近 1 年年化期望報酬率」為主結論 */}
       {primary && primaryEv && (
         <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-center">
           <ResultCard
-            title={`${primaryLabel}・年化 EV`}
+            title={`${primaryLabel}・${L.evAnnual}`}
             value={fmtPct(primary.evAnnual)}
             color={primaryAnnualColor}
             emphasis="hero"
-            subtitle={`${primary.freq === 'daily' ? '日' : '月'} EV ${fmtPct(primaryEv.ev, 4)}（年化複利推估）`}
+            subtitle={`${primary.freq === 'daily' ? L.evDaily : L.evMonthly} ${fmtPct(primaryEv.ev, 4)}（年化複利推估）`}
           />
           <div className="space-y-2">
             <QuadrantBadge quadrant={primaryEv.quadrant} size="large" />
@@ -236,7 +248,7 @@ export default function MultiScaleEVBlock({
       {/* 主要尺度勝敗率 stats row — 用 .sdiv 直線分隔 */}
       {primaryEv && (
         <div className="border-t border-b border-base py-3 flex items-center flex-wrap gap-x-3.5 gap-y-1 text-small text-dim">
-          <span className="text-label text-faint tracking-wide">{primaryLabel}勝敗率與平均盈虧</span>
+          <span className="text-label text-faint tracking-wide">{primaryLabel}勝敗率與平均報酬</span>
           <span className="w-px h-3 bg-[rgba(154,122,46,0.18)]" />
           <span>勝率 <span className="text-red-700 font-semibold num">{fmtWinRate(primaryEv.winRate)}</span></span>
           <span className="w-px h-3 bg-[rgba(154,122,46,0.18)]" />
@@ -259,7 +271,7 @@ export default function MultiScaleEVBlock({
         </button>
         {stepsOpen && (
           <div className="mt-3 bg-elevated rounded-lg p-4 text-small num space-y-1.5 text-main">
-            <p className="text-dim">三尺度年化 EV 計算過程：</p>
+            <p className="text-dim">三尺度{L.evAnnual}計算過程：</p>
             <StepRow label="最近 3 個月" scale={result.short} periods={252} />
             <StepRow label="最近 1 年" scale={result.medium} periods={252} />
             <StepRow label="最近 5 年" scale={result.long} periods={12} />

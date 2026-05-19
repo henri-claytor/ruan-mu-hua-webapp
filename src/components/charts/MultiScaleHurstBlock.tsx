@@ -2,6 +2,8 @@ import { useState } from 'react'
 import ResultCard from '../ResultCard'
 import HurstLineChart from './HurstLineChart'
 import type { HurstResult, MultiScaleHurstResult, Divergence } from '../../lib/hurst'
+import { METRIC_LABELS as L } from '../../lib/labels'
+import { fmtRatio } from '../../utils/format'
 
 // ── Divergence banner styling ─────────────────────────────────────────────────
 
@@ -61,21 +63,27 @@ interface ScaleCardProps {
 }
 
 function ScaleCard({ label, windowDesc, result, showSampleWarning }: ScaleCardProps) {
+  // 底層值：R/S 迴歸點集 or 單點 fallback
+  const baseValue = result.points.length >= 2
+    ? `R/S 迴歸斜率（${result.points.length} 點）`
+    : `R/S 單點公式（n=${result.n}）`
+
   return (
     <div className="space-y-2">
       <div className="text-center">
-        <p className="text-label text-faint uppercase tracking-wider">{label}</p>
-        <p className="text-caption text-faint">{windowDesc}</p>
+        <p className="text-[18px] font-bold text-main">{label}</p>
+        <p className="text-[11px] text-dim">{windowDesc}</p>
       </div>
       <ResultCard
-        title="Hurst H"
-        value={result.h.toFixed(2)}
+        title={L.hurstH}
+        value={fmtRatio(result.h)}
         color={colorForH(result.h)}
         emphasis="hero"
       />
-      <p className="text-caption text-center text-dim">{result.interpretation}</p>
+      <p className="text-[11px] text-center text-dim">{baseValue}</p>
+      <p className="text-[11px] text-center text-dim">{result.interpretation}</p>
       {showSampleWarning && (
-        <p className="text-caption text-center text-faint">樣本較小，誤差較大</p>
+        <p className="text-[10.5px] text-center text-faint">樣本較小，誤差較大</p>
       )}
     </div>
   )

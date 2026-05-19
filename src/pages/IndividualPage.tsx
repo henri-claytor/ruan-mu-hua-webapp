@@ -375,14 +375,14 @@ function VarBlock({ varResult, freqLabel }: { varResult: VaRResult; freqLabel: s
       title="下行風險：最壞情境虧損"
       subtitle={`VaR 95% / 99% · 使用${freqLabel}`}
     >
-      {/* Hero 列：VaR95 報酬率 + 風險等級徽章（風險等級徽章保留警示語意：高=紅、低=綠） */}
+      {/* Hero 列：95% 下行虧損 + 風險等級徽章（風險等級徽章保留警示語意：高=紅、低=綠） */}
       <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-center">
         <ResultCard
-          title="VaR 95%"
+          title="95% 下行虧損"
           value={fmtPct(varResult.var95)}
           color={colorByReturn(varResult.var95)}
           emphasis="hero"
-          subtitle={`有 5% 機率虧損超過 ${(Math.abs(varResult.var95) * 100).toFixed(2)}%`}
+          subtitle={`第 5 百分位 · 有 5% 機率虧損超過 ${(Math.abs(varResult.var95) * 100).toFixed(1)}%`}
         />
         <div className="space-y-2">
           <span
@@ -400,10 +400,10 @@ function VarBlock({ varResult, freqLabel }: { varResult: VaRResult; freqLabel: s
       <div className="flex flex-col md:flex-row gap-4">
         <div className="flex-shrink-0 md:w-64">
           <ResultCard
-            title="VaR 99%"
+            title="99% 下行虧損"
             value={fmtPct(varResult.var99)}
             color={colorByReturn(varResult.var99)}
-            subtitle={`有 1% 機率虧損超過 ${(Math.abs(varResult.var99) * 100).toFixed(2)}%`}
+            subtitle={`第 1 百分位 · 有 1% 機率虧損超過 ${(Math.abs(varResult.var99) * 100).toFixed(1)}%`}
           />
         </div>
         <div className="flex-1 min-w-0">
@@ -424,13 +424,13 @@ function McBlock({ mcResult, monthlyCount }: { mcResult: MonteCarloResult; month
       title="未來資產淨值模擬"
       subtitle={`蒙地卡羅，初始 100 萬，模擬 100 條路徑 · 使用月報酬 ${monthlyCount} 筆`}
     >
-      {/* Hero 列：5 年 P50 */}
+      {/* Hero 列：5 年中位情境 */}
       <ResultCard
-        title="5 年中位數情境（P50）"
+        title="5 年中位情境"
         value={fmtWan(fiveYr.p50)}
         color={heroColor}
         emphasis="hero"
-        subtitle={`期望範圍 P5: ${fmtWan(fiveYr.p5)} ~ P95: ${fmtWan(fiveYr.p95)}`}
+        subtitle={`悲觀 ${fmtWan(fiveYr.p5)} ~ 樂觀 ${fmtWan(fiveYr.p95)}（μ=${fmtPct(mcResult.mu, 2)} / σ=${fmtPct(mcResult.sigma, 2)}）`}
       />
 
       {/* 中層：1/3/5 年三組區塊 */}
@@ -441,18 +441,18 @@ function McBlock({ mcResult, monthlyCount }: { mcResult: MonteCarloResult; month
           { label: '5 年', data: mcResult.fiveYear },
         ] as const).map(({ label, data }) => (
           <div key={label} className="bg-elevated rounded-xl p-4">
-            <p className="text-small font-semibold text-dim mb-2">{label}</p>
+            <p className="text-[18px] font-bold text-main mb-2">{label}</p>
             <div className="space-y-1">
               <div className="flex justify-between text-small">
-                <span className="text-green-700 font-medium">P95</span>
+                <span className="text-green-700 font-medium">樂觀情境</span>
                 <span className="num text-main">{(data.p95 / 10000).toFixed(1)} 萬</span>
               </div>
               <div className="flex justify-between text-small">
-                <span className="text-blue-600 font-medium">P50</span>
+                <span className="text-blue-600 font-medium">中位情境</span>
                 <span className="num text-main">{(data.p50 / 10000).toFixed(1)} 萬</span>
               </div>
               <div className="flex justify-between text-small">
-                <span className="text-red-600 font-medium">P5</span>
+                <span className="text-red-600 font-medium">悲觀情境</span>
                 <span className="num text-main">{(data.p5 / 10000).toFixed(1)} 萬</span>
               </div>
             </div>

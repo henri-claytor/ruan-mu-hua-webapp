@@ -90,17 +90,20 @@ function ScaleCard({ label, windowDesc, scale, showSampleWarning }: ScaleCardPro
   return (
     <div className="space-y-2">
       <div className="text-center">
-        <p className="text-label text-faint uppercase tracking-wider">{label}</p>
-        <p className="text-caption text-faint">{windowDesc}</p>
+        <p className="text-[18px] font-bold text-main">{label}</p>
+        <p className="text-[11px] text-dim">{windowDesc}</p>
       </div>
       {valid ? (
         <>
           <div className="bg-card2 border border-base rounded-xl px-4 py-3 text-center">
-            <p className="text-[10.5px] text-dim tracking-[1px] mb-1">分形維度 D</p>
+            <p className="text-[13px] text-dim mb-1">分形維度 D</p>
             <p className={`font-serif text-display font-bold leading-none num ${numClass}`}>
               {fmtRatio(d)}
             </p>
           </div>
+          <p className="text-[11px] text-center text-dim">
+            H = <span className="num font-semibold">{fmtRatio(scale.h)}</span>（D = 2 − H）
+          </p>
           <div className="text-center">
             <span className={`inline-block text-[10.5px] px-2 py-0.5 rounded-full font-semibold ${
               CHIP_STYLE[classifyFractalDimension(d)]
@@ -115,7 +118,7 @@ function ScaleCard({ label, windowDesc, scale, showSampleWarning }: ScaleCardPro
         </div>
       )}
       {showSampleWarning && valid && (
-        <p className="text-caption text-center text-faint">樣本較小，誤差較大</p>
+        <p className="text-[10.5px] text-center text-faint">樣本較小，誤差較大</p>
       )}
     </div>
   )

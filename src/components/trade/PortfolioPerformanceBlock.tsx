@@ -23,10 +23,12 @@ const TONE_TO_CLASS: Record<MetricTone, string> = {
   default: 'neu',
 }
 
-function MetricCard({ label, value, tone = 'neu', note }: {
+function MetricCard({ label, value, tone = 'neu', base, note }: {
   label: string
   value: string
   tone?: MetricTone
+  /** 底層值（dim 11px 副行）*/
+  base?: string
   note?: string
 }) {
   const toneClass = TONE_TO_CLASS[tone] ?? 'neu'
@@ -34,6 +36,7 @@ function MetricCard({ label, value, tone = 'neu', note }: {
     <div className="metric-card">
       <div className="metric-lbl">{label}</div>
       <div className={`metric-val ${toneClass}`}>{value}</div>
+      {base && <div className="metric-note text-dim">{base}</div>}
       {note && <div className="metric-note">{note}</div>}
     </div>
   )
@@ -64,7 +67,7 @@ export default function PortfolioPerformanceBlock({ performance: p }: Props) {
         <div className="space-y-2">
           <QuadrantBadge quadrant={p.quadrant} size="large" />
           <p className="text-small text-dim">
-            賠率 <span className="num font-semibold">{fmtRatio(p.payoffRatio)}</span>
+            損益比 <span className="num font-semibold">{fmtRatio(p.payoffRatio)}</span>
             {' × '}
             獲利因子 <span className="num font-semibold">{fmtRatio(p.profitFactor)}</span>
           </p>
@@ -73,28 +76,53 @@ export default function PortfolioPerformanceBlock({ performance: p }: Props) {
 
       {/* 8 張 metric-card（2 列 × 4 欄桌機 / 2 欄手機） */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard label="總實現損益" value={fmtMoney(p.totalPnl)} tone={colorByReturn(p.totalPnl)} />
+        <MetricCard
+          label="總實現損益"
+          value={fmtMoney(p.totalPnl)}
+          tone={colorByReturn(p.totalPnl)}
+          base={`總投入 ${fmtMoney(p.totalInvested)}`}
+        />
         <MetricCard
           label="整體報酬率"
           value={fmtPct(p.overallReturn)}
           tone={colorByReturn(p.overallReturn)}
-          note={`年化 ${fmtPct(p.annualizedReturn)}`}
+          base={`年化 ${fmtPct(p.annualizedReturn)}`}
         />
-        <MetricCard label="整體勝率" value={fmtPct(p.winRate)} tone="neu" />
+        <MetricCard
+          label="整體勝率"
+          value={fmtPct(p.winRate)}
+          tone="neu"
+          base={`勝 ${p.nWins} / 共 ${p.nTrades}`}
+        />
         <MetricCard
           label="獲利因子"
           value={fmtRatio(p.profitFactor)}
           tone={isFinite(p.profitFactor) && p.profitFactor >= 2.0 ? 'pos' : 'neu'}
-          note="總獲利 ÷ 總虧損"
+          base={`總獲利 ${fmtMoney(p.avgWinPnl * p.nWins)} / 總虧損 ${fmtMoney(p.avgLossPnl * p.nLosses)}`}
         />
-        <MetricCard label="平均持有天數" value={`${p.avgHoldingDays.toFixed(1)} 天`} tone="neu" />
-        <MetricCard label="勝場均報酬" value={fmtPct(p.avgWinReturnRate)} tone={colorByReturn(p.avgWinReturnRate)} />
-        <MetricCard label="敗場均虧損" value={fmtPct(p.avgLossReturnRate)} tone={colorByReturn(p.avgLossReturnRate)} />
         <MetricCard
-          label="損益比（賠率）"
+          label="平均持有天數"
+          value={`${p.avgHoldingDays.toFixed(1)} 天`}
+          tone="neu"
+          base={`最長 ${p.maxHoldingDays} / 最短 ${p.minHoldingDays}`}
+        />
+        <MetricCard
+          label="勝場均報酬"
+          value={fmtPct(p.avgWinReturnRate)}
+          tone={colorByReturn(p.avgWinReturnRate)}
+          base={`勝場 ${p.nWins} 筆`}
+        />
+        <MetricCard
+          label="敗場均虧損"
+          value={fmtPct(p.avgLossReturnRate)}
+          tone={colorByReturn(p.avgLossReturnRate)}
+          base={`敗場 ${p.nLosses} 筆`}
+        />
+        <MetricCard
+          label="損益比"
           value={fmtRatio(p.payoffRatio)}
           tone={isFinite(p.payoffRatio) && p.payoffRatio >= 1.5 ? 'pos' : 'neu'}
-          note="平均獲利 ÷ 平均虧損"
+          base={`Avg Gain ${fmtPct(p.avgWinReturnRate)} / Avg Loss ${fmtPct(p.avgLossReturnRate)}`}
         />
       </div>
 
@@ -138,7 +166,7 @@ export default function PortfolioPerformanceBlock({ performance: p }: Props) {
               勝率 = {p.nWins} / {p.nTrades} = <span className="font-semibold">{fmtPct(p.winRate)}</span>
             </p>
             <p>
-              賠率 = 平均獲利報酬率 {fmtPct(p.avgWinReturnRate)} ÷ |平均虧損報酬率 {fmtPct(p.avgLossReturnRate)}| = <span className="font-semibold">{fmtRatio(p.payoffRatio)}</span>
+              損益比 = 平均獲利報酬率 {fmtPct(p.avgWinReturnRate)} ÷ |平均虧損報酬率 {fmtPct(p.avgLossReturnRate)}| = <span className="font-semibold">{fmtRatio(p.payoffRatio)}</span>
             </p>
             <p>
               獲利因子 = 總獲利 {fmtMoney(p.avgWinPnl * p.nWins)} ÷ |總虧損 {fmtMoney(p.avgLossPnl * p.nLosses)}| = <span className="font-semibold">{fmtRatio(p.profitFactor)}</span>

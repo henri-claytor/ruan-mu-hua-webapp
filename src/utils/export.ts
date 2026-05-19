@@ -30,18 +30,18 @@ export interface HurstSummaryData {
 
 export function buildIndividualSummary(data: IndividualSummaryData): string {
   const lines = [
-    '【個股期望值分析】',
-    `EV: ${fmt(data.ev.ev)}  象限: ${data.ev.quadrant}`,
+    '【個股期望報酬率分析】',
+    `期望報酬率: ${fmt(data.ev.ev)}  象限: ${data.ev.quadrant}`,
     `勝率: ${fmt(data.ev.winRate)}  敗率: ${fmt(data.ev.lossRate)}`,
     `Avg Gain: ${fmt(data.ev.avgGain)}  Avg Loss: ${fmt(data.ev.avgLoss)}`,
-    `實際賠率: ${data.ev.actualOdds.toFixed(2)}  損益平衡賠率: ${data.ev.breakEvenOdds.toFixed(2)}`,
+    `實際損益比: ${data.ev.actualOdds.toFixed(2)}  損益平衡比: ${data.ev.breakEvenOdds.toFixed(2)}`,
   ]
   if (data.var) {
-    lines.push(`VaR 95%: ${fmt(data.var.var95)}  VaR 99%: ${fmt(data.var.var99)}`)
+    lines.push(`95% 下行虧損: ${fmt(data.var.var95)}  99% 下行虧損: ${fmt(data.var.var99)}`)
   }
   if (data.mc) {
     lines.push(
-      `蒙地卡羅 P50 → 1年: ${fmtWan(data.mc.oneYear.p50)}  3年: ${fmtWan(data.mc.threeYear.p50)}  5年: ${fmtWan(data.mc.fiveYear.p50)}`
+      `中位情境 → 1年: ${fmtWan(data.mc.oneYear.p50)}  3年: ${fmtWan(data.mc.threeYear.p50)}  5年: ${fmtWan(data.mc.fiveYear.p50)}`
     )
   }
   return lines.join('\n')
@@ -50,10 +50,10 @@ export function buildIndividualSummary(data: IndividualSummaryData): string {
 export function buildPortfolioSummary(data: PortfolioSummaryData): string {
   const lines = [
     '【投資組合分析】',
-    `組合 EV: ${fmt(data.ev.ev)}  象限: ${data.ev.quadrant}`,
+    `組合期望報酬率: ${fmt(data.ev.ev)}  象限: ${data.ev.quadrant}`,
     `勝率: ${fmt(data.ev.winRate)}  敗率: ${fmt(data.ev.lossRate)}`,
-    `VaR 95%: ${fmt(data.var.var95)}  VaR 99%: ${fmt(data.var.var99)}`,
-    `蒙地卡羅 P50 → 1年: ${fmtWan(data.mc.oneYear.p50)}  3年: ${fmtWan(data.mc.threeYear.p50)}  5年: ${fmtWan(data.mc.fiveYear.p50)}`,
+    `95% 下行虧損: ${fmt(data.var.var95)}  99% 下行虧損: ${fmt(data.var.var99)}`,
+    `中位情境 → 1年: ${fmtWan(data.mc.oneYear.p50)}  3年: ${fmtWan(data.mc.threeYear.p50)}  5年: ${fmtWan(data.mc.fiveYear.p50)}`,
   ]
   return lines.join('\n')
 }
@@ -61,7 +61,7 @@ export function buildPortfolioSummary(data: PortfolioSummaryData): string {
 export function buildHurstSummary(data: HurstSummaryData): string {
   const { result } = data
   return [
-    '【Hurst 指數分析】',
+    '【趨勢強度分析】',
     `H 值: ${result.h.toFixed(4)}  解讀: ${result.interpretation}`,
     `n=${result.n}  R=${result.r.toFixed(6)}  S=${result.s.toFixed(6)}  R/S=${(result.r / result.s).toFixed(4)}`,
   ].join('\n')

@@ -89,7 +89,7 @@ describe('buildRecommendations', () => {
     const lowPayoffRecs = recs.filter((r) => r.id.startsWith('rec-low-payoff-'))
     expect(lowPayoffRecs.length).toBe(2)
     expect(lowPayoffRecs.every((r) => r.priority === 2)).toBe(true)
-    expect(lowPayoffRecs[0].body).toMatch(/賠率/)
+    expect(lowPayoffRecs[0].body).toMatch(/損益比/)
   })
 
   it('produces rec-money-mgmt for stock-money-management diagnosis', () => {

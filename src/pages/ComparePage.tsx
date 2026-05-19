@@ -243,21 +243,21 @@ export default function ComparePage() {
                 bWins={winAdv.b}
               />
               <CompareRow
-                label="實際賠率"
+                label="實際損益比"
                 valA={resultA.ev ? resultA.ev.actualOdds.toFixed(2) : null}
                 valB={resultB.ev ? resultB.ev.actualOdds.toFixed(2) : null}
                 aWins={oddsAdv.a}
                 bWins={oddsAdv.b}
               />
               <CompareRow
-                label={`VaR 95%（虧損少者優）${resultA.freqLabel || resultB.freqLabel ? ` — A:${resultA.freqLabel || '—'} / B:${resultB.freqLabel || '—'}` : ''}`}
+                label={`95% 下行虧損（虧損少者優）${resultA.freqLabel || resultB.freqLabel ? ` — A:${resultA.freqLabel || '—'} / B:${resultB.freqLabel || '—'}` : ''}`}
                 valA={resultA.var ? fmtPct(resultA.var.var95) : null}
                 valB={resultB.var ? fmtPct(resultB.var.var95) : null}
                 aWins={var95Adv.a}
                 bWins={var95Adv.b}
               />
               <CompareRow
-                label="VaR 99%（虧損少者優）"
+                label="99% 下行虧損（虧損少者優）"
                 valA={resultA.var ? fmtPct(resultA.var.var99) : null}
                 valB={resultB.var ? fmtPct(resultB.var.var99) : null}
                 aWins={var99Adv.a}
@@ -265,7 +265,7 @@ export default function ComparePage() {
               />
               <tr className="border-t border-base">
                 <td className="px-4 py-3 text-small text-dim font-medium">
-                  Hurst H 值
+                  趨勢強度 H
                   <br />
                   <span className="text-caption text-faint font-normal">
                     {resultA.freqLabel && `A:${resultA.freqLabel}`}

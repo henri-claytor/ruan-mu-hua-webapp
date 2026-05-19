@@ -94,8 +94,8 @@ function diagnoseAdvantages(performance: PortfolioPerformance): Diagnosis[] {
       id: 'adv-strong-payoff',
       level: 'advantage',
       scope: 'portfolio',
-      title: '賠率優勢明顯',
-      message: `賠率 ${payoff.toFixed(2)}x，平均每次贏的幅度顯著超過輸的幅度`,
+      title: '損益比優勢明顯',
+      message: `損益比 ${payoff.toFixed(2)}x，平均每次贏的幅度顯著超過輸的幅度`,
       advice: '打法品質優秀，可保持',
     })
   }
@@ -185,7 +185,7 @@ function diagnosePortfolio(
       scope: 'portfolio',
       title: '獲利因子偏低',
       message: `獲利因子 ${performance.profitFactor.toFixed(2)} < 2.0，整體獲利相對虧損的倍數不足`,
-      advice: '全面檢視策略邏輯，優先改善賠率',
+      advice: '全面檢視策略邏輯，優先改善損益比',
     })
   }
 
@@ -195,8 +195,8 @@ function diagnosePortfolio(
       id: 'low-payoff',
       level: 'note',
       scope: 'portfolio',
-      title: '賠率偏低',
-      message: `賠率 ${performance.payoffRatio.toFixed(2)} < 1.2，平均獲利幅度與虧損幅度相當`,
+      title: '損益比偏低',
+      message: `損益比 ${performance.payoffRatio.toFixed(2)} < 1.2，平均獲利幅度與虧損幅度相當`,
       advice: '改善停損或獲利了結節奏，讓獲利筆的幅度顯著高於虧損筆',
     })
   }
@@ -269,7 +269,7 @@ function diagnoseStock(s: StockStats): Diagnosis[] {
       scope: 'stock',
       stockId: s.stockId,
       title: '打法品質偏低',
-      message: `${s.stockName} 賠率 ${s.payoffRatio.toFixed(2)}，平均虧損幅度大於獲利`,
+      message: `${s.stockName} 損益比 ${s.payoffRatio.toFixed(2)}，平均虧損幅度大於獲利`,
       advice: '靠勝率撐場結構脆弱，重新評估進出場邏輯，或改為只在確信度高時才進場',
     })
   }
@@ -282,7 +282,7 @@ function diagnoseStock(s: StockStats): Diagnosis[] {
       scope: 'stock',
       stockId: s.stockId,
       title: '資金管理問題',
-      message: `${s.stockName} 賠率 ${isFinite(s.payoffRatio) ? s.payoffRatio.toFixed(2) : '∞'}（打法尚可），但獲利因子僅 ${s.profitFactor.toFixed(2)}`,
+      message: `${s.stockName} 損益比 ${isFinite(s.payoffRatio) ? s.payoffRatio.toFixed(2) : '∞'}（打法尚可），但獲利因子僅 ${s.profitFactor.toFixed(2)}`,
       advice: '虧損筆部位明顯重於獲利筆，建議統一部位大小或縮減虧損筆倉位',
     })
   }
@@ -337,7 +337,7 @@ export function diagnose(
 // ── 個股診斷摘要（用於矩陣表「診斷摘要」欄） ─────────────────────────────────
 //
 // 依優先順序回傳第一條符合的摘要文字：
-//   全敗 → 全勝 → 賠率偏低 → 資金管理 → 集中度 → 雙優 → 樣本不足 → 預設
+//   全敗 → 全勝 → 損益比偏低 → 資金管理 → 集中度 → 雙優 → 樣本不足 → 預設
 // 每條訊息含具體數字（金額、比例、報酬率）。
 
 export function buildStockDiagSummary(s: StockStats): string {
@@ -363,18 +363,18 @@ export function buildStockDiagSummary(s: StockStats): string {
   if (s.nLosses === 0 && s.nWins > 0 && s.nWins < 5) {
     return `${s.nTrades} 筆全勝，樣本少參考性有限`
   }
-  // 5. 賠率偏低
+  // 5. 損益比偏低
   if (isFinite(s.payoffRatio) && s.payoffRatio > 0 && s.payoffRatio < 0.8) {
-    return `賠率 ${s.payoffRatio.toFixed(2)} 偏低，靠勝率撐場，結構脆弱`
+    return `損益比 ${s.payoffRatio.toFixed(2)} 偏低，靠勝率撐場，結構脆弱`
   }
-  // 6. 資金管理問題（賠率好但 PF 差）
+  // 6. 資金管理問題（損益比好但 PF 差）
   if (
     s.payoffRatio >= 1.5 &&
     isFinite(s.payoffRatio) &&
     isFinite(s.profitFactor) &&
     s.profitFactor < 1.0
   ) {
-    return `邏輯對（賠率 ${s.payoffRatio.toFixed(2)}）但押注管理有問題（PF ${s.profitFactor.toFixed(2)}）`
+    return `邏輯對（損益比 ${s.payoffRatio.toFixed(2)}）但押注管理有問題（PF ${s.profitFactor.toFixed(2)}）`
   }
   // 7. 集中度高
   if (Math.abs(s.pnlContribution) > 0.2) {
@@ -388,7 +388,7 @@ export function buildStockDiagSummary(s: StockStats): string {
     isFinite(s.payoffRatio) &&
     isFinite(s.profitFactor)
   ) {
-    return `打法與結果雙優（賠率 ${s.payoffRatio.toFixed(2)}、PF ${s.profitFactor.toFixed(1)}）`
+    return `打法與結果雙優（損益比 ${s.payoffRatio.toFixed(2)}、PF ${s.profitFactor.toFixed(1)}）`
   }
   // 9. 樣本不足
   if (s.nTrades < 5) {
