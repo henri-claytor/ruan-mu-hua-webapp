@@ -48,11 +48,12 @@ export function calcEV(returns: number[]): EVResult {
 
 // ── Multi-scale EV（年化版） ──────────────────────────────────────────────────
 //
-// 短期：日報酬 60 筆（≈3 個月）→ 年化 252
-// 中期：月報酬 36 筆（3 年）→ 年化 12
-// 長期：月報酬全部（5–10 年）→ 年化 12
+// 個股頁三尺度定義（v2）：
+//   short  ＝ 日報酬 最近 60  筆（「最近 3 個月」，主要判斷）→ 年化 252
+//   medium ＝ 日報酬 最近 240 筆（「最近 1 年」，主要判斷）→ 年化 252
+//   long   ＝ 月報酬 最近 60  筆（「最近 5 年」，參考用）→ 年化 12
 //
-// 三尺度年化 EV 數量級對齊（年化報酬 %），可直接比較。
+// Divergence 判讀只看主要判斷的兩個（short + medium），long 僅供畫面參考。
 
 export type EVDivergence =
   | 'stable'
@@ -62,24 +63,28 @@ export type EVDivergence =
 
 export interface ScaleEV {
   ev: EVResult
-  evAnnual: number       // 年化後 EV
-  windowSize: number     // 此尺度使用的資料筆數
+  evAnnual: number                          // 年化後 EV
+  windowSize: number                        // 此尺度使用的資料筆數
   freq: 'daily' | 'monthly'
+  /** 主要判斷 vs 參考用 — 用於 UI 視覺權重 */
+  tier: 'primary' | 'reference'
+  /** 顯示用標題（如「最近 3 個月」） */
+  label: string
 }
 
 export interface MultiScaleEVResult {
-  short:  ScaleEV | null   // 60 日窗口
-  medium: ScaleEV | null   // 36 月窗口
-  long:   ScaleEV          // 全部月報酬
+  short:  ScaleEV | null   // 主要 · 日報酬 60 筆
+  medium: ScaleEV | null   // 主要 · 日報酬 240 筆
+  long:   ScaleEV | null   // 參考 · 月報酬 60 筆
   divergence: EVDivergence
 }
 
-const MIN_MONTHLY_FOR_LONG = 60
-const MEDIUM_MONTHLY_WIN = 36
-const SHORT_DAILY_WIN = 60
+const SHORT_DAILY_WIN = 60        // 最近 3 個月
+const MEDIUM_DAILY_WIN = 240      // 最近 1 年
+const LONG_MONTHLY_WIN = 60       // 最近 5 年
 const PERIODS_PER_YEAR_DAILY = 252
 const PERIODS_PER_YEAR_MONTHLY = 12
-const EV_DIVERGENCE_THRESHOLD = 0.05  // 5% 年化差距
+const EV_DIVERGENCE_GAP_RATIO = 0.3   // 主要兩尺度年化 EV 相對差距 30%
 
 /** 複利年化：(1+ev)^N − 1。處理極端值避免 NaN。 */
 function annualize(ev: number, periodsPerYear: number): number {
@@ -88,30 +93,40 @@ function annualize(ev: number, periodsPerYear: number): number {
   return Math.pow(base, periodsPerYear) - 1
 }
 
-/** 依「短期年化 vs 長期年化」差距 + 0% 跨越判斷四狀態。 */
+/**
+ * 只比較兩個主要尺度（最近 3 個月 vs 最近 1 年）。
+ * - 兩者皆有資料 + 同號 + gap < 30% → stable
+ * - 同號但 gap ≥ 30% → mixed
+ * - 短低於中 + gap > 30% → short-deteriorating
+ * - 短高於中 + gap > 30% → short-improving
+ * - 任一為 null → stable（資料不足無法判讀）
+ */
 export function classifyEVDivergence(
   shortAnnual: number | null,
-  longAnnual: number,
+  mediumAnnual: number | null,
 ): EVDivergence {
-  if (shortAnnual === null) return 'stable'
-  const diff = shortAnnual - longAnnual
-  if (Math.abs(diff) <= EV_DIVERGENCE_THRESHOLD) return 'stable'
+  if (shortAnnual === null || mediumAnnual === null) return 'stable'
 
-  // 跨越 0%（賺/虧分界）
-  if (diff < -EV_DIVERGENCE_THRESHOLD && shortAnnual < 0 && longAnnual >= 0) {
-    return 'short-deteriorating'
-  }
-  if (diff > EV_DIVERGENCE_THRESHOLD && shortAnnual > 0 && longAnnual <= 0) {
-    return 'short-improving'
-  }
+  const denom = Math.max(Math.abs(shortAnnual), Math.abs(mediumAnnual))
+  const gap = denom > 0 ? Math.abs(shortAnnual - mediumAnnual) / denom : 0
+  const sameSign =
+    (shortAnnual > 0 && mediumAnnual > 0) ||
+    (shortAnnual < 0 && mediumAnnual < 0) ||
+    (shortAnnual === 0 && mediumAnnual === 0)
+
+  if (sameSign && gap < EV_DIVERGENCE_GAP_RATIO) return 'stable'
+
+  if (shortAnnual < mediumAnnual && gap > EV_DIVERGENCE_GAP_RATIO) return 'short-deteriorating'
+  if (shortAnnual > mediumAnnual && gap > EV_DIVERGENCE_GAP_RATIO) return 'short-improving'
   return 'mixed'
 }
 
 /**
- * 多尺度年化 EV 計算。
+ * 多尺度年化 EV 計算（v2 個股版）。
+ *
  * @param monthly 月報酬序列
  * @param daily   日報酬序列
- * @returns 三尺度結果 + divergence；月報酬 < 60 筆回傳 null
+ * @returns 三尺度結果 + divergence；三尺度全部資料不足時回傳 null
  */
 export function calcMultiScaleEV(
   monthly: number[],
@@ -120,30 +135,7 @@ export function calcMultiScaleEV(
   const cleanMonthly = monthly.filter((v) => !isNaN(v))
   const cleanDaily = daily.filter((v) => !isNaN(v))
 
-  if (cleanMonthly.length < MIN_MONTHLY_FOR_LONG) return null
-
-  // 長期：全部月報酬
-  const longEV = calcEV(cleanMonthly)
-  const long: ScaleEV = {
-    ev: longEV,
-    evAnnual: annualize(longEV.ev, PERIODS_PER_YEAR_MONTHLY),
-    windowSize: cleanMonthly.length,
-    freq: 'monthly',
-  }
-
-  // 中期：近 36 月
-  let medium: ScaleEV | null = null
-  if (cleanMonthly.length >= MEDIUM_MONTHLY_WIN) {
-    const mediumEV = calcEV(cleanMonthly.slice(-MEDIUM_MONTHLY_WIN))
-    medium = {
-      ev: mediumEV,
-      evAnnual: annualize(mediumEV.ev, PERIODS_PER_YEAR_MONTHLY),
-      windowSize: MEDIUM_MONTHLY_WIN,
-      freq: 'monthly',
-    }
-  }
-
-  // 短期：近 60 日
+  // short：日報酬最近 60 筆（主要 · 最近 3 個月）
   let short: ScaleEV | null = null
   if (cleanDaily.length >= SHORT_DAILY_WIN) {
     const shortEV = calcEV(cleanDaily.slice(-SHORT_DAILY_WIN))
@@ -152,25 +144,54 @@ export function calcMultiScaleEV(
       evAnnual: annualize(shortEV.ev, PERIODS_PER_YEAR_DAILY),
       windowSize: SHORT_DAILY_WIN,
       freq: 'daily',
+      tier: 'primary',
+      label: '最近 3 個月',
     }
   }
+
+  // medium：日報酬最近 240 筆（主要 · 最近 1 年）
+  let medium: ScaleEV | null = null
+  if (cleanDaily.length >= MEDIUM_DAILY_WIN) {
+    const mediumEV = calcEV(cleanDaily.slice(-MEDIUM_DAILY_WIN))
+    medium = {
+      ev: mediumEV,
+      evAnnual: annualize(mediumEV.ev, PERIODS_PER_YEAR_DAILY),
+      windowSize: MEDIUM_DAILY_WIN,
+      freq: 'daily',
+      tier: 'primary',
+      label: '最近 1 年',
+    }
+  }
+
+  // long：月報酬最近 60 筆（參考 · 最近 5 年）
+  let long: ScaleEV | null = null
+  if (cleanMonthly.length >= LONG_MONTHLY_WIN) {
+    const longEV = calcEV(cleanMonthly.slice(-LONG_MONTHLY_WIN))
+    long = {
+      ev: longEV,
+      evAnnual: annualize(longEV.ev, PERIODS_PER_YEAR_MONTHLY),
+      windowSize: LONG_MONTHLY_WIN,
+      freq: 'monthly',
+      tier: 'reference',
+      label: '最近 5 年',
+    }
+  }
+
+  // 三尺度全部不足 → null（呼叫端顯示「資料不足」）
+  if (!short && !medium && !long) return null
 
   return {
     short,
     medium,
     long,
-    divergence: classifyEVDivergence(short?.evAnnual ?? null, long.evAnnual),
+    divergence: classifyEVDivergence(short?.evAnnual ?? null, medium?.evAnnual ?? null),
   }
 }
 
 // ── 投資組合多尺度年化 EV ──────────────────────────────────────────────────────
 //
-// 對加權組合計算多尺度 EV：內部組合 calcPortfolioReturns + calcMultiScaleEV，
-// 不重新實作邏輯。
-//
-// - 短期日頻 60：需所有股票日報酬 ≥ 60；不足則 short = null
-// - 中期月頻 36：對加權月報酬切尾 36 筆
-// - 長期月頻全期：用全部加權月報酬
+// 注意：組合頁目前沿用 v2 窗口定義（short=日60 / medium=日240 / long=月60）。
+// 標籤與 tier 由 calcMultiScaleEV 自動帶入；組合頁 UI 可以選擇是否套用視覺權重。
 
 /**
  * 投資組合多尺度年化 EV。
@@ -188,15 +209,17 @@ export function calcPortfolioMultiScaleEV(
   const weightedMonthly = calcPortfolioReturns(stockMonthlyArrays, weights)
   if (weightedMonthly.length < 60) return null
 
-  // 2. 加權組合日報酬：只取所有股票都有 ≥ 60 日的尾段
-  const allHaveSixtyDaily = stockDailyArrays.every((d) => d.length >= 60)
-  const weightedDaily60 = allHaveSixtyDaily
+  // 2. 加權組合日報酬：取所有股票最短長度的尾段（讓 calcMultiScaleEV 自行判定 60/240 窗口是否足夠）
+  const minDaily = stockDailyArrays.length > 0
+    ? Math.min(...stockDailyArrays.map((d) => d.length))
+    : 0
+  const weightedDaily = minDaily > 0
     ? calcPortfolioReturns(
-        stockDailyArrays.map((d) => d.slice(-60)),
+        stockDailyArrays.map((d) => d.slice(-minDaily)),
         weights,
       )
     : []
 
-  // 3. 重用 calcMultiScaleEV（內部會自動處理 daily < 60 時 short = null）
-  return calcMultiScaleEV(weightedMonthly, weightedDaily60)
+  // 3. 重用 calcMultiScaleEV（內部依資料筆數自動處理 short/medium/long）
+  return calcMultiScaleEV(weightedMonthly, weightedDaily)
 }

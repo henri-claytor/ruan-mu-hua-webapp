@@ -29,18 +29,18 @@ export default function StockSelector({
   const selectedStock = stockList.find((s) => s.code === value)
   const displayLabel = selectedStock ? `${selectedStock.code} ${selectedStock.name}` : ''
 
-  // Filter: match code or name containing query string
+  // Filter: match code or name containing query string；下拉清單支援滾動，最多顯示 200 筆以保護效能
   const trimmedQuery = query.trim()
   const filtered =
     trimmedQuery === ''
-      ? stockList.slice(0, 10)
+      ? stockList.slice(0, 200)
       : stockList
           .filter(
             (s) =>
               s.code.includes(trimmedQuery) ||
               s.name.includes(trimmedQuery)
           )
-          .slice(0, 10)
+          .slice(0, 200)
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -91,7 +91,7 @@ export default function StockSelector({
       {open && !loading && (
         <div
           className="absolute z-50 top-full left-0 right-0 mt-1 bg-surface border border-base
-                     rounded-xl shadow-lg overflow-hidden"
+                     rounded-xl shadow-lg max-h-[300px] overflow-y-auto"
         >
           {filtered.length === 0 ? (
             <p className="px-4 py-3 text-small text-faint">找不到符合的股票</p>

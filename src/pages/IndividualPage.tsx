@@ -108,23 +108,32 @@ export default function IndividualPage() {
   const clearIndividual = useAppStore((s) => s.clearIndividual)
   const stockList = useAppStore((s) => s.stockList)
 
+  const [pendingCode, setPendingCode] = useState<string>(individualStockCode)
+  const [queriedCode, setQueriedCode] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [results, setResults] = useState<Results | null>(null)
   const resultRef = useRef<HTMLDivElement>(null)
   const [searchParams] = useSearchParams()
 
-  // 深度連結：URL ?code=XXXX 自動載入該股票
+  // 深度連結：URL ?code=XXXX 自動觸發查詢
   useEffect(() => {
     const code = searchParams.get('code')
-    if (code && code !== individualStockCode) {
-      handleSelect(code, '')
+    if (code && code !== queriedCode) {
+      setPendingCode(code)
+      runQuery(code, '')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
 
-  async function handleSelect(code: string, name: string) {
+  function handleSelect(code: string, _name: string) {
+    // 只更新 pending；不立即發 API
+    setPendingCode(code)
     setIndividualStockCode(code)
+  }
+
+  async function runQuery(code: string, name: string) {
+    if (!code) return
     setError(null)
     setLoading(true)
     setResults(null)
@@ -135,8 +144,9 @@ export default function IndividualPage() {
         fetchDailyReturns(code).catch(() => [] as number[]),
       ])
 
+      const stockName = name || stockList.find((s) => s.code === code)?.name || code
+
       if (monthly.length < 60) {
-        const stockName = name || stockList.find((s) => s.code === code)?.name || code
         setError(`${stockName} 月報酬數據不足（${monthly.length} 筆），無法計算`)
         return
       }
@@ -147,8 +157,6 @@ export default function IndividualPage() {
         ? `日報酬 ${daily.length} 筆`
         : `月報酬 ${monthly.length} 筆（日頻數據不足）`
 
-      const stockName = name || stockList.find((s) => s.code === code)?.name || code
-
       setResults({
         stockCode: code,
         stockName,
@@ -158,8 +166,9 @@ export default function IndividualPage() {
         evMulti: calcMultiScaleEV(monthly, daily),
         var: calcVaR(returnsForRisk),
         mc: runMonteCarlo(monthly, 100),
-        hurst: calcMultiScaleHurst(daily),
+        hurst: daily.length >= 240 ? calcMultiScaleHurst(daily) : null,
       })
+      setQueriedCode(code)
     } catch (err) {
       setError(`載入失敗：${String(err)}`)
     } finally {
@@ -167,16 +176,35 @@ export default function IndividualPage() {
     }
   }
 
+  function handleQueryClick() {
+    runQuery(pendingCode, '')
+  }
+
   function handleClear() {
     clearIndividual()
+    setPendingCode('')
+    setQueriedCode('')
     setResults(null)
     setError(null)
   }
 
+  const queryButtonState: 'disabled' | 'query' | 'requery' | 'loading' =
+    loading ? 'loading' :
+    !pendingCode ? 'disabled' :
+    pendingCode === queriedCode ? 'requery' :
+    'query'
+  const queryButtonLabel =
+    queryButtonState === 'loading' ? '查詢中...' :
+    queryButtonState === 'requery' ? '重新查詢' :
+    '查詢'
+
   async function handleCopy() {
     if (!results || !results.evMulti) return
+    // 摘要用 primary 尺度（medium 最近 1 年），降級到 short 或 long
+    const primary = results.evMulti.medium ?? results.evMulti.short ?? results.evMulti.long
+    if (!primary) return
     const text = buildIndividualSummary({
-      ev: results.evMulti.long.ev,
+      ev: primary.ev,
       var: results.var,
       mc: results.mc,
     })
@@ -215,17 +243,30 @@ export default function IndividualPage() {
         </button>
       </div>
 
-      {/* ── Stock Selector ── */}
-      <div className="bg-surface rounded-2xl border border-base p-4">
-        <label className="block text-small font-medium text-dim mb-2">選取股票</label>
-        <StockSelector value={individualStockCode} onChange={handleSelect} />
+      {/* ── Stock Selector + Query ── */}
+      <div className="bg-surface rounded-2xl border border-base p-4 space-y-3">
+        <label className="block text-small font-medium text-dim">選取股票</label>
+        <div className="flex gap-2 items-stretch">
+          <div className="flex-1">
+            <StockSelector value={pendingCode} onChange={handleSelect} />
+          </div>
+          <button
+            onClick={handleQueryClick}
+            disabled={queryButtonState === 'disabled' || queryButtonState === 'loading'}
+            className="btn btn-solid whitespace-nowrap"
+          >
+            {queryButtonLabel}
+          </button>
+        </div>
       </div>
 
       {/* ── Empty state ── */}
       {!loading && !hasResult && !error && (
         <div className="border-2 border-dashed border-base rounded-2xl p-8 text-center bg-elevated">
-          <p className="text-dim text-body">請選取股票以開始分析</p>
-          <p className="text-faint text-small mt-1">系統將自動取得月報酬與日報酬數據</p>
+          <p className="text-dim text-body">
+            {pendingCode ? '請按「查詢」開始分析' : '請選取股票以開始分析'}
+          </p>
+          <p className="text-faint text-small mt-1">系統將取得月報酬與日報酬數據</p>
         </div>
       )}
 
@@ -290,23 +331,28 @@ export default function IndividualPage() {
           {/* 4. 未來資產淨值模擬（蒙地卡羅） */}
           <McBlock mcResult={results.mc} monthlyCount={results.monthlyCount} />
 
-          {/* 5. 建議行動參考 */}
-          <ActionGuide
-            items={buildIndividualGuide({
-              ev: results.evMulti?.long.ev.ev ?? 0,
-              evQuadrant: results.evMulti?.long.ev.quadrant ?? '低賠率負期望值（避免）',
-              varLevel: classifyVarLevel(results.var.var95),
-              hurstH: results.hurst?.short.h ?? null,
-              hurstDivergence: results.hurst?.divergence,
-              evDivergence: results.evMulti?.divergence,
-            })}
-          />
+          {/* 5. 建議行動參考 — 用 primary scale（medium > short > long） */}
+          {(() => {
+            const primary = results.evMulti?.medium ?? results.evMulti?.short ?? results.evMulti?.long ?? null
+            return (
+              <ActionGuide
+                items={buildIndividualGuide({
+                  ev: primary?.ev.ev ?? 0,
+                  evQuadrant: primary?.ev.quadrant ?? '低賠率負期望值（避免）',
+                  varLevel: classifyVarLevel(results.var.var95),
+                  hurstH: results.hurst?.short.h ?? null,
+                  hurstDivergence: results.hurst?.divergence,
+                  evDivergence: results.evMulti?.divergence,
+                })}
+              />
+            )
+          })()}
 
           {/* 6. 我在這檔的交易紀錄（雙向跨頁連結反向 + 市場 vs 我的賠率對照）*/}
           <MyTradeHistoryBlock
             stockCode={results.stockCode}
             stockName={results.stockName}
-            marketPayoff={results.evMulti?.long.ev.actualOdds ?? null}
+            marketPayoff={(results.evMulti?.medium ?? results.evMulti?.short ?? results.evMulti?.long)?.ev.actualOdds ?? null}
           />
         </div>
       )}

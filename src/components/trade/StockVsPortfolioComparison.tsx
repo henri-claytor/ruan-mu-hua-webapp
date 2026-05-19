@@ -87,7 +87,7 @@ function EVComparisonTable({
 }) {
   const portShort = portfolioEV.short?.evAnnual ?? null
   const portMedium = portfolioEV.medium?.evAnnual ?? null
-  const portLong = portfolioEV.long.evAnnual
+  const portLong = portfolioEV.long?.evAnnual ?? null
 
   return (
     <div className="overflow-x-auto">
@@ -114,7 +114,7 @@ function EVComparisonTable({
               {portMedium !== null ? fmtPct(portMedium) : '—'}
             </td>
             <td className={`px-3 py-2 text-right num ${evColorClass(portLong)}`}>
-              {fmtPct(portLong)}
+              {portLong !== null ? fmtPct(portLong) : '—'}
             </td>
             <td className="px-3 py-2 text-center text-faint">(基準)</td>
           </tr>
@@ -127,7 +127,7 @@ function EVComparisonTable({
             // 對比：依組合各尺度判斷
             const aShort = portShort !== null ? compareEV(sShort, portShort) : 'na'
             const aMedium = portMedium !== null ? compareEV(sMedium, portMedium) : 'na'
-            const aLong = compareEV(sLong, portLong)
+            const aLong = portLong !== null ? compareEV(sLong, portLong) : 'na'
             const verdict = getOverallVerdict([aShort, aMedium, aLong])
 
             return (
@@ -407,7 +407,9 @@ export default function StockVsPortfolioComparison({
       const aMedium = portfolioEV.medium
         ? compareEV(s.ev?.medium?.evAnnual ?? null, portfolioEV.medium.evAnnual)
         : 'na'
-      const aLong = compareEV(s.ev?.long?.evAnnual ?? null, portfolioEV.long.evAnnual)
+      const aLong = portfolioEV.long
+        ? compareEV(s.ev?.long?.evAnnual ?? null, portfolioEV.long.evAnnual)
+        : 'na'
       counts[getOverallVerdict([aShort, aMedium, aLong])]++
     }
     return `${counts['一致']} 一致 / ${counts['部分對立']} 部分對立 / ${counts['全對立']} 全對立`

@@ -17,29 +17,28 @@ function bannerStyle(d: EVDivergence): BannerStyle {
   switch (d) {
     case 'stable':
       return {
-        text: '三尺度一致，狀態穩定',
+        text: '近 3 個月與近 1 年趨勢一致',
         bg: 'bg-elevated',
         border: 'border-base',
         textColor: 'text-dim',
       }
     case 'short-deteriorating':
       return {
-        text: '⚠ 短期動能轉弱：短期年化 EV 顯著低於長期',
+        text: '⚠ 短期動能轉弱：近 3 個月年化 EV 顯著低於近 1 年',
         bg: 'bg-amber-50',
         border: 'border-amber-200',
         textColor: 'text-amber-700',
       }
     case 'short-improving':
       return {
-        // 紅漲：短期 EV 轉強用紅色語意（這裡的 banner 仍用綠提示「正向」訊號 → 為避免色彩混亂，沿用 amber 警示風格）
-        text: '⚠ 短期動能轉強：短期年化 EV 顯著高於長期',
+        text: '⚠ 短期動能轉強：近 3 個月年化 EV 顯著高於近 1 年',
         bg: 'bg-amber-50',
         border: 'border-amber-200',
         textColor: 'text-amber-700',
       }
     case 'mixed':
       return {
-        text: '三尺度有差異，狀態觀察中',
+        text: '近 3 個月與近 1 年趨勢有差異',
         bg: 'bg-blue-50',
         border: 'border-blue-200',
         textColor: 'text-blue-700',
@@ -50,37 +49,64 @@ function bannerStyle(d: EVDivergence): BannerStyle {
 // ── Single scale card ─────────────────────────────────────────────────────────
 
 interface ScaleCardProps {
-  label: string
-  windowDesc: string
   result: ScaleEV | null
+  /** 後備：result === null 時顯示的標題 */
+  fallbackLabel: string
+  /** 後備 window 描述 */
+  fallbackWindowDesc: string
+  /** 視覺權重：'primary' 主要判斷 / 'reference' 參考用（弱化樣式） */
+  tier: 'primary' | 'reference'
+  /** 短期可加「樣本較小」警語 */
   showSampleWarning?: boolean
 }
 
-function ScaleCard({ label, windowDesc, result, showSampleWarning }: ScaleCardProps) {
-  // 統一卡片樣式：cream 底（bg-card2）+ 金色淡邊 + 左對齊 + 所有內容在卡內
-  const cardCls =
-    'bg-card2 border border-base rounded-lg px-[18px] py-4 hover:border-[rgba(154,122,46,0.28)] transition-colors'
+function ScaleCard({ result, fallbackLabel, fallbackWindowDesc, tier, showSampleWarning }: ScaleCardProps) {
+  const isReference = tier === 'reference'
+  // primary 用 bg-card2（cream），reference 用 bg-elevated（弱化）
+  const cardCls = isReference
+    ? 'bg-elevated border border-[rgba(154,122,46,0.12)] rounded-lg px-[18px] py-4 opacity-90'
+    : 'bg-card2 border border-base rounded-lg px-[18px] py-4 hover:border-[rgba(154,122,46,0.28)] transition-colors'
+  const numSize = isReference ? 'text-[20px]' : 'text-[24px]'
+  const numToneClass = (n: number) => (n > 0 ? 'text-red-700' : n < 0 ? 'text-green-700' : 'text-main')
+
+  const label = result?.label ?? fallbackLabel
+  const windowDesc =
+    result === null
+      ? fallbackWindowDesc
+      : result.freq === 'daily'
+        ? `日報酬最近 ${result.windowSize} 筆`
+        : `月報酬最近 ${result.windowSize} 筆`
 
   if (!result) {
     return (
       <div className={cardCls}>
-        <p className="text-[10.5px] text-dim tracking-[1.5px]">{label}</p>
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <p className="text-[10.5px] text-dim tracking-[1.5px]">{label}</p>
+          {isReference && <span className="text-[10px] text-gold-dark px-1.5 py-0.5 rounded-full bg-[rgba(154,122,46,0.1)]">參考用</span>}
+        </div>
         <p className="text-[10.5px] text-[#9a8a70] mb-3">{windowDesc}</p>
         <p className="text-small text-faint">資料不足</p>
       </div>
     )
   }
-  const isPos = result.evAnnual > 0
-  const numCls = isPos ? 'text-red-700' : result.evAnnual < 0 ? 'text-green-700' : 'text-main'
   return (
     <div className={cardCls}>
-      <p className="text-[10.5px] text-dim tracking-[1.5px]">{label}</p>
+      <div className="flex items-baseline gap-2 flex-wrap">
+        <p className={`text-[10.5px] tracking-[1.5px] ${isReference ? 'text-dim' : 'text-dim'}`}>{label}</p>
+        {isReference && (
+          <span className="text-[10px] text-gold-dark px-1.5 py-0.5 rounded-full bg-[rgba(154,122,46,0.1)]">
+            參考用
+          </span>
+        )}
+      </div>
       <p className="text-[10.5px] text-[#9a8a70] mb-3">{windowDesc}</p>
       <p className="text-[10.5px] text-dim tracking-[1px] mb-1">年化 EV</p>
-      <p className={`font-serif text-[24px] font-bold leading-none num ${numCls}`}>
+      <p className={`font-serif ${numSize} font-bold leading-none num ${numToneClass(result.evAnnual)} ${isReference ? 'opacity-90' : ''}`}>
         {fmtPct(result.evAnnual)}
       </p>
-      <p className="text-[10.5px] text-dim mt-2 leading-[1.5]">{result.ev.quadrant}</p>
+      <p className={`text-[10.5px] mt-2 leading-[1.5] ${isReference ? 'text-faint' : 'text-dim'}`}>
+        {result.ev.quadrant}
+      </p>
       {showSampleWarning && (
         <p className="text-[10.5px] text-faint leading-[1.5]">樣本較小，年化誤差較大</p>
       )}
@@ -135,10 +161,13 @@ export default function MultiScaleEVBlock({
 }: Props) {
   const [stepsOpen, setStepsOpen] = useState(false)
   const banner = bannerStyle(result.divergence)
-  const long = result.long
-  const longEv = long.ev
-  const longAnnualColor = colorByReturn(long.evAnnual)
-  const hasOddsAdvantage = longEv.actualOdds > longEv.breakEvenOdds
+
+  // 主結論：優先用 medium（最近 1 年），其次 short，最後 long
+  const primary = result.medium ?? result.short ?? result.long
+  const primaryEv = primary?.ev
+  const primaryAnnualColor = primary ? colorByReturn(primary.evAnnual) : 'default'
+  const primaryLabel = primary?.label ?? '年化 EV'
+  const hasOddsAdvantage = primaryEv ? primaryEv.actualOdds > primaryEv.breakEvenOdds : false
 
   const title = titleOverride ?? '期望報酬與賠率優勢'
   const dailyLabel = dailyCountLabelOverride ?? `日報酬 ${dailyCount} 筆`
@@ -148,7 +177,7 @@ export default function MultiScaleEVBlock({
       <div>
         <h2 className="font-serif text-h2 font-bold text-main tracking-wide">{title}</h2>
         <p className="text-caption text-faint mt-0.5">
-          EV 期望值多尺度分析（短/中/長）· 使用月報酬 {monthlyCount} 筆 + {dailyLabel}
+          多尺度年化 EV（最近 3 個月 · 最近 1 年 · 最近 5 年參考）· 月報酬 {monthlyCount} 筆 + {dailyLabel}
         </p>
       </div>
 
@@ -160,55 +189,64 @@ export default function MultiScaleEVBlock({
         </div>
       </div>
 
-      {/* Hero 列：以「長期年化 EV」為主結論 */}
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-center">
-        <ResultCard
-          title="長期年化 EV"
-          value={fmtPct(long.evAnnual)}
-          color={longAnnualColor}
-          emphasis="hero"
-          subtitle={`單期月 EV ${fmtPct(longEv.ev, 4)}（年化複利推估）`}
-        />
-        <div className="space-y-2">
-          <QuadrantBadge quadrant={longEv.quadrant} size="large" />
-          <p className={`text-body font-semibold ${hasOddsAdvantage ? 'text-red-700' : 'text-green-700'}`}>
-            賠率優勢：{hasOddsAdvantage ? '✓ 有優勢' : '✗ 無優勢'}
-          </p>
+      {/* Hero 列：以「最近 1 年年化 EV」為主結論 */}
+      {primary && primaryEv && (
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-center">
+          <ResultCard
+            title={`${primaryLabel}・年化 EV`}
+            value={fmtPct(primary.evAnnual)}
+            color={primaryAnnualColor}
+            emphasis="hero"
+            subtitle={`${primary.freq === 'daily' ? '日' : '月'} EV ${fmtPct(primaryEv.ev, 4)}（年化複利推估）`}
+          />
+          <div className="space-y-2">
+            <QuadrantBadge quadrant={primaryEv.quadrant} size="large" />
+            <p className={`text-body font-semibold ${hasOddsAdvantage ? 'text-red-700' : 'text-green-700'}`}>
+              賠率優勢：{hasOddsAdvantage ? '✓ 有優勢' : '✗ 無優勢'}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* 三卡片並列：短/中/長 年化 EV */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* 主要判斷：前 2 卡並排 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <ScaleCard
-          label="短期"
-          windowDesc="日頻最近 60 筆（≈3 個月）"
           result={result.short}
+          fallbackLabel="最近 3 個月"
+          fallbackWindowDesc="需 ≥ 60 筆日報酬"
+          tier="primary"
           showSampleWarning
         />
         <ScaleCard
-          label="中期"
-          windowDesc="月頻最近 36 筆（3 年）"
           result={result.medium}
-        />
-        <ScaleCard
-          label="長期"
-          windowDesc={`月頻全部（${result.long.windowSize} 筆）`}
-          result={result.long}
+          fallbackLabel="最近 1 年"
+          fallbackWindowDesc="需 ≥ 240 筆日報酬"
+          tier="primary"
         />
       </div>
 
-      {/* 長期勝敗率 stats row — 用 .sdiv 直線分隔 */}
-      <div className="border-t border-b border-base py-3 flex items-center flex-wrap gap-x-3.5 gap-y-1 text-small text-dim">
-        <span className="text-label text-faint tracking-wide">長期勝敗率與平均盈虧（月頻）</span>
-        <span className="w-px h-3 bg-[rgba(154,122,46,0.18)]" />
-        <span>勝率 <span className="text-red-700 font-semibold num">{(longEv.winRate * 100).toFixed(2)}%</span></span>
-        <span className="w-px h-3 bg-[rgba(154,122,46,0.18)]" />
-        <span>敗率 <span className="text-green-700 font-semibold num">{(longEv.lossRate * 100).toFixed(2)}%</span></span>
-        <span className="w-px h-3 bg-[rgba(154,122,46,0.18)]" />
-        <span>Avg Gain <span className="text-red-700 font-semibold num">{fmtPct(longEv.avgGain)}</span></span>
-        <span className="w-px h-3 bg-[rgba(154,122,46,0.18)]" />
-        <span>Avg Loss <span className="text-green-700 font-semibold num">{fmtPct(-longEv.avgLoss)}</span></span>
-      </div>
+      {/* 參考用：第 3 卡單獨整行 */}
+      <ScaleCard
+        result={result.long}
+        fallbackLabel="最近 5 年"
+        fallbackWindowDesc="需 ≥ 60 筆月報酬"
+        tier="reference"
+      />
+
+      {/* 主要尺度勝敗率 stats row — 用 .sdiv 直線分隔 */}
+      {primaryEv && (
+        <div className="border-t border-b border-base py-3 flex items-center flex-wrap gap-x-3.5 gap-y-1 text-small text-dim">
+          <span className="text-label text-faint tracking-wide">{primaryLabel}勝敗率與平均盈虧</span>
+          <span className="w-px h-3 bg-[rgba(154,122,46,0.18)]" />
+          <span>勝率 <span className="text-red-700 font-semibold num">{(primaryEv.winRate * 100).toFixed(2)}%</span></span>
+          <span className="w-px h-3 bg-[rgba(154,122,46,0.18)]" />
+          <span>敗率 <span className="text-green-700 font-semibold num">{(primaryEv.lossRate * 100).toFixed(2)}%</span></span>
+          <span className="w-px h-3 bg-[rgba(154,122,46,0.18)]" />
+          <span>Avg Gain <span className="text-red-700 font-semibold num">{fmtPct(primaryEv.avgGain)}</span></span>
+          <span className="w-px h-3 bg-[rgba(154,122,46,0.18)]" />
+          <span>Avg Loss <span className="text-green-700 font-semibold num">{fmtPct(-primaryEv.avgLoss)}</span></span>
+        </div>
+      )}
 
       {/* 摺疊：計算步驟 */}
       <div className="border-t border-base pt-3">
@@ -222,9 +260,9 @@ export default function MultiScaleEVBlock({
         {stepsOpen && (
           <div className="mt-3 bg-elevated rounded-lg p-4 text-small num space-y-1.5 text-main">
             <p className="text-dim">三尺度年化 EV 計算過程：</p>
-            <StepRow label="短期" scale={result.short} periods={252} />
-            <StepRow label="中期" scale={result.medium} periods={12} />
-            <StepRow label="長期" scale={result.long} periods={12} />
+            <StepRow label="最近 3 個月" scale={result.short} periods={252} />
+            <StepRow label="最近 1 年" scale={result.medium} periods={252} />
+            <StepRow label="最近 5 年" scale={result.long} periods={12} />
             <p className="text-dim pt-2 border-t border-base">
               年化複利公式：(1 + 單期 EV)<sup>每年期數</sup> − 1
             </p>
