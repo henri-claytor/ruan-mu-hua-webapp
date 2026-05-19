@@ -57,34 +57,32 @@ interface ScaleCardProps {
 }
 
 function ScaleCard({ label, windowDesc, result, showSampleWarning }: ScaleCardProps) {
+  // 統一卡片樣式：cream 底（bg-card2）+ 金色淡邊 + 左對齊 + 所有內容在卡內
+  const cardCls =
+    'bg-card2 border border-base rounded-lg px-[18px] py-4 hover:border-[rgba(154,122,46,0.28)] transition-colors'
+
   if (!result) {
     return (
-      <div className="space-y-2">
-        <div className="text-center">
-          <p className="text-label text-faint uppercase tracking-wider">{label}</p>
-          <p className="text-caption text-faint">{windowDesc}</p>
-        </div>
-        <div className="bg-elevated rounded-xl p-4 text-center">
-          <p className="text-small text-faint">資料不足</p>
-        </div>
+      <div className={cardCls}>
+        <p className="text-[10.5px] text-dim tracking-[1.5px]">{label}</p>
+        <p className="text-[10.5px] text-[#9a8a70] mb-3">{windowDesc}</p>
+        <p className="text-small text-faint">資料不足</p>
       </div>
     )
   }
+  const isPos = result.evAnnual > 0
+  const numCls = isPos ? 'text-red-700' : result.evAnnual < 0 ? 'text-green-700' : 'text-main'
   return (
-    <div className="space-y-2">
-      <div className="text-center">
-        <p className="text-label text-faint uppercase tracking-wider">{label}</p>
-        <p className="text-caption text-faint">{windowDesc}</p>
-      </div>
-      <ResultCard
-        title="年化 EV"
-        value={fmtPct(result.evAnnual)}
-        color={colorByReturn(result.evAnnual)}
-        emphasis="hero"
-      />
-      <p className="text-caption text-center text-dim">{result.ev.quadrant}</p>
+    <div className={cardCls}>
+      <p className="text-[10.5px] text-dim tracking-[1.5px]">{label}</p>
+      <p className="text-[10.5px] text-[#9a8a70] mb-3">{windowDesc}</p>
+      <p className="text-[10.5px] text-dim tracking-[1px] mb-1">年化 EV</p>
+      <p className={`font-serif text-[24px] font-bold leading-none num ${numCls}`}>
+        {fmtPct(result.evAnnual)}
+      </p>
+      <p className="text-[10.5px] text-dim mt-2 leading-[1.5]">{result.ev.quadrant}</p>
       {showSampleWarning && (
-        <p className="text-caption text-center text-faint">樣本較小，年化誤差較大</p>
+        <p className="text-[10.5px] text-faint leading-[1.5]">樣本較小，年化誤差較大</p>
       )}
     </div>
   )
