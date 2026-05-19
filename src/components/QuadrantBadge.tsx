@@ -10,10 +10,19 @@ interface QuadrantStyle {
 }
 
 const evQuadrantStyle: Record<Quadrant, QuadrantStyle> = {
-  '高賠率正期望值（最佳）':           { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-300', Icon: Icon.Trophy },
-  '低賠率正期望值（勝率驅動）':       { bg: 'bg-blue-50',  text: 'text-blue-700',  border: 'border-blue-300',  Icon: Icon.Check  },
+  // 紅漲綠跌：最佳評級用紅，避免操作用綠
+  '高賠率正期望值（最佳）':           { bg: 'bg-red-50',   text: 'text-red-700',   border: 'border-red-300',   Icon: Icon.Trophy },
+  '低賠率正期望值（勝率驅動）':       { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-300', Icon: Icon.Check  },
   '高賠率負期望值（賠率驅動但勝率不足）': { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-300', Icon: Icon.Alert },
-  '低賠率負期望值（避免）':           { bg: 'bg-red-50',   text: 'text-red-700',   border: 'border-red-300',   Icon: Icon.Ban    },
+  '低賠率負期望值（避免）':           { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-300', Icon: Icon.Ban    },
+}
+
+/** large 模式下顯示「兩行標題 + 副標」拆解 */
+const evQuadrantLarge: Record<Quadrant, { line1: string; line2: string; sub: string }> = {
+  '高賠率正期望值（最佳）':           { line1: '高賠率',     line2: '正期望值',     sub: '最佳評級' },
+  '低賠率正期望值（勝率驅動）':       { line1: '低賠率',     line2: '正期望值',     sub: '勝率驅動' },
+  '高賠率負期望值（賠率驅動但勝率不足）': { line1: '高賠率',     line2: '負期望值',     sub: '勝率不足' },
+  '低賠率負期望值（避免）':           { line1: '低賠率',     line2: '負期望值',     sub: '避免操作' },
 }
 
 const performanceQuadrantStyle: Record<PerformanceQuadrant, QuadrantStyle> = {
@@ -60,6 +69,26 @@ export default function QuadrantBadge({ quadrant, size = 'normal', compact = fal
   const tooltip = compact && isPerf ? quadrant : undefined
 
   if (size === 'large') {
+    // best-badge 風格：vertical 佈局（icon + 兩行 serif 標題 + 副標）— 對應 ui-spec
+    if (!isPerf) {
+      const meta = evQuadrantLarge[quadrant as Quadrant]
+      return (
+        <div
+          title={tooltip}
+          className={`inline-flex flex-col items-center justify-center gap-1.5 px-5 py-4 rounded-lg border-2 min-w-[140px] text-center ${style.bg} ${style.text} ${style.border}`}
+        >
+          <SvgIcon size={22} />
+          <div className="font-serif text-[13px] font-bold text-main tracking-wide leading-snug">
+            {meta.line1}
+            <br />
+            {meta.line2}
+          </div>
+          <div className={`text-[10.5px] font-semibold tracking-[1px] ${style.text}`}>
+            {meta.sub}
+          </div>
+        </div>
+      )
+    }
     return (
       <span
         title={tooltip}

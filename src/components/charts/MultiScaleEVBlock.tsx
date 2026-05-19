@@ -154,9 +154,12 @@ export default function MultiScaleEVBlock({
         </p>
       </div>
 
-      {/* Divergence 判讀橫幅 */}
-      <div className={`${banner.bg} border ${banner.border} rounded-xl px-4 py-3`}>
-        <p className={`text-body font-semibold ${banner.textColor}`}>{banner.text}</p>
+      {/* Divergence 判讀 sbadge — 緊湊 inline-flex + pulse dot */}
+      <div>
+        <div className="sbadge">
+          <div className="sdot" />
+          <span className="text-small font-medium">{banner.text}</span>
+        </div>
       </div>
 
       {/* Hero 列：以「長期年化 EV」為主結論 */}
@@ -196,18 +199,17 @@ export default function MultiScaleEVBlock({
         />
       </div>
 
-      {/* 弱化：勝敗率與平均盈虧（依長期） */}
-      <div className="border-t border-base pt-3">
-        <p className="text-label text-faint mb-1.5">長期勝敗率與平均盈虧（月頻）</p>
-        <p className="text-small text-dim num">
-          勝率 <span className="text-red-700 font-semibold">{(longEv.winRate * 100).toFixed(2)}%</span>
-          {' · '}
-          敗率 <span className="text-green-700 font-semibold">{(longEv.lossRate * 100).toFixed(2)}%</span>
-          {' · '}
-          Avg Gain <span className="text-red-700 font-semibold">{fmtPct(longEv.avgGain)}</span>
-          {' · '}
-          Avg Loss <span className="text-green-700 font-semibold">{fmtPct(-longEv.avgLoss)}</span>
-        </p>
+      {/* 長期勝敗率 stats row — 用 .sdiv 直線分隔 */}
+      <div className="border-t border-b border-base py-3 flex items-center flex-wrap gap-x-3.5 gap-y-1 text-small text-dim">
+        <span className="text-label text-faint tracking-wide">長期勝敗率與平均盈虧（月頻）</span>
+        <span className="w-px h-3 bg-[rgba(154,122,46,0.18)]" />
+        <span>勝率 <span className="text-red-700 font-semibold num">{(longEv.winRate * 100).toFixed(2)}%</span></span>
+        <span className="w-px h-3 bg-[rgba(154,122,46,0.18)]" />
+        <span>敗率 <span className="text-green-700 font-semibold num">{(longEv.lossRate * 100).toFixed(2)}%</span></span>
+        <span className="w-px h-3 bg-[rgba(154,122,46,0.18)]" />
+        <span>Avg Gain <span className="text-red-700 font-semibold num">{fmtPct(longEv.avgGain)}</span></span>
+        <span className="w-px h-3 bg-[rgba(154,122,46,0.18)]" />
+        <span>Avg Loss <span className="text-green-700 font-semibold num">{fmtPct(-longEv.avgLoss)}</span></span>
       </div>
 
       {/* 摺疊：計算步驟 */}
