@@ -143,41 +143,51 @@ function FractalSpectrum({ dShort, dMedium, dLong }: SpectrumProps) {
       <p className="text-caption text-dim text-center">
         D 值光譜（1.0 → 2.0）· 越接近 1 走勢越規律、越接近 2 走勢越雜亂
       </p>
-      <div className="relative h-16">
-        {/* 5 區段背景 */}
-        <div className="absolute inset-x-0 top-6 h-3 flex rounded-full overflow-hidden">
+      <div className="relative h-10">
+        {/* 5 區段背景色帶 */}
+        <div className="absolute inset-x-0 top-2 h-3 flex rounded-full overflow-hidden">
           <div className="bg-red-100" style={{ width: '40%' }} title="強趨勢" />
           <div className="bg-amber-100" style={{ width: '8%' }} title="偏趨勢" />
           <div className="bg-base/40" style={{ width: '4%' }} title="接近隨機" />
           <div className="bg-amber-100" style={{ width: '8%' }} title="偏均值回歸" />
           <div className="bg-green-100" style={{ width: '40%' }} title="強均值回歸" />
         </div>
-        {/* 中線 1.5 */}
-        <div className="absolute top-5 h-5 w-px bg-dim" style={{ left: '50%' }} />
-        <p className="absolute top-11 text-caption text-faint" style={{ left: '50%', transform: 'translateX(-50%)' }}>
-          1.5
-        </p>
+        {/* 中線 1.5（穿過色帶）*/}
+        <div className="absolute top-1 h-5 w-px bg-dim" style={{ left: '50%' }} />
 
-        {/* 邊界 1.0 / 2.0 */}
-        <p className="absolute top-11 left-0 text-caption text-faint">1.0</p>
-        <p className="absolute top-11 right-0 text-caption text-faint">2.0</p>
-
-        {/* 標記 */}
+        {/* 圓點 marker（無文字，僅以色點標位置）*/}
         {markers.map((m, i) => (
           <div
             key={i}
-            className="absolute top-0 flex flex-col items-center"
-            style={{ left: `${toX(m.d)}%`, transform: 'translateX(-50%)' }}
-          >
-            <span className="text-caption font-semibold whitespace-nowrap" style={{ color: m.color }}>
-              {m.label} {fmtRatio(m.d)}
-            </span>
-            <div className="w-px h-7 mt-0.5" style={{ background: m.color }} />
-            <div
-              className="w-2 h-2 rounded-full border-2 border-white shadow"
-              style={{ background: m.color, marginTop: '-4px' }}
+            className="absolute top-[5px] w-2.5 h-2.5 rounded-full border-2 border-white shadow"
+            style={{
+              left: `${toX(m.d)}%`,
+              transform: 'translateX(-50%)',
+              background: m.color,
+            }}
+            aria-label={`${m.label} D=${fmtRatio(m.d)}`}
+          />
+        ))}
+
+        {/* 邊界 / 中線標籤 */}
+        <p className="absolute top-7 left-0 text-caption text-faint">1.0</p>
+        <p className="absolute top-7 text-caption text-faint" style={{ left: '50%', transform: 'translateX(-50%)' }}>
+          1.5
+        </p>
+        <p className="absolute top-7 right-0 text-caption text-faint">2.0</p>
+      </div>
+
+      {/* 圖例列：固定位置、永不重疊 */}
+      <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1 pt-2 border-t border-base">
+        {markers.map((m, i) => (
+          <span key={i} className="inline-flex items-center gap-2 text-caption">
+            <span
+              className="w-2.5 h-2.5 rounded-full border-2 border-white shadow"
+              style={{ background: m.color }}
             />
-          </div>
+            <span className="text-dim">{m.label}</span>
+            <span className="font-serif font-semibold num text-main">{fmtRatio(m.d)}</span>
+          </span>
         ))}
       </div>
     </div>
