@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import StockSelector from '../components/StockSelector'
-import ResultCard from '../components/ResultCard'
 import VarHistogram from '../components/charts/VarHistogram'
 import FanChart from '../components/charts/FanChart'
 import MultiScaleHurstBlock from '../components/charts/MultiScaleHurstBlock'
@@ -15,7 +14,7 @@ import { fetchMonthlyReturns, fetchDailyReturns } from '../lib/api'
 import { useAppStore } from '../store/useAppStore'
 import ActionGuide, { buildIndividualGuide, classifyVarLevel, type VarLevel } from '../components/ActionGuide'
 import MyTradeHistoryBlock from '../components/trade/MyTradeHistoryBlock'
-import { fmtPct, colorByReturn } from '../utils/format'
+import { fmtPct } from '../utils/format'
 import {
   buildIndividualSummary,
   copyTextToClipboard,
@@ -370,45 +369,51 @@ export default function IndividualPage() {
 function VarBlock({ varResult, freqLabel }: { varResult: VaRResult; freqLabel: string }) {
   const level = classifyVarLevel(varResult.var95)
   const levelLabel = VAR_LEVEL_LABEL[level]
+  const levelClass =
+    level === 'low'  ? 'bg-green-50 text-green-700 border-green-300' :
+    level === 'mid'  ? 'bg-amber-50 text-amber-700 border-amber-300' :
+                       'bg-red-50 text-red-700 border-red-300'
+  const var95Pct = (Math.abs(varResult.var95) * 100).toFixed(1)
+  const var99Pct = (Math.abs(varResult.var99) * 100).toFixed(1)
+  const nSamples = varResult.sorted.length
+
   return (
     <SectionBlock
       title="下行風險：最壞情境虧損"
-      subtitle={`VaR 95% / 99% · 使用${freqLabel}`}
+      subtitle={`使用 ${freqLabel}`}
     >
-      {/* Hero 列：95% 下行虧損 + 風險等級徽章（風險等級徽章保留警示語意：高=紅、低=綠） */}
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-center">
-        <ResultCard
-          title="95% 下行虧損"
-          value={fmtPct(varResult.var95)}
-          color={colorByReturn(varResult.var95)}
-          emphasis="hero"
-          subtitle={`第 5 百分位 · 有 5% 機率虧損超過 ${(Math.abs(varResult.var95) * 100).toFixed(1)}%`}
-        />
-        <div className="space-y-2">
-          <span
-            className={`inline-block px-4 py-2 rounded-xl text-h2 font-bold border-2
-              ${level === 'low'  ? 'bg-green-50  border-green-300  text-green-700'  : ''}
-              ${level === 'mid'  ? 'bg-amber-50  border-amber-300  text-amber-700'  : ''}
-              ${level === 'high' ? 'bg-red-50    border-red-300    text-red-700'    : ''}`}
-          >
+      {/* 主卡：95% 下行虧損（金邊 + 主判斷 chip + 右上風險等級） */}
+      <div className="relative bg-[#f4ead8] border-2 border-[#c9a84c] rounded-lg px-[18px] py-4">
+        <div className="absolute top-2.5 right-3.5 flex items-center gap-1.5">
+          <span className="text-[10.5px] bg-gold-dark text-white px-2 py-0.5 rounded-full font-semibold">主判斷</span>
+          <span className={`text-[10.5px] px-2 py-0.5 rounded-full border ${levelClass} font-semibold`}>
             {levelLabel}
           </span>
         </div>
+        <p className="text-[18px] font-bold text-main">95% 下行虧損</p>
+        <p className="text-[11px] text-dim mb-3">{nSamples} 筆{freqLabel.startsWith('日') ? '日' : '月'}報酬樣本</p>
+
+        <p className="text-[13px] text-dim mb-1">第 5 百分位</p>
+        <p className="font-serif text-[40px] font-bold leading-none num text-green-700">
+          {fmtPct(varResult.var95)}
+        </p>
+        <p className="text-[11px] text-dim mt-2">有 5% 機率虧損超過 <span className="num font-semibold">{var95Pct}%</span></p>
       </div>
 
-      {/* 中層 + 圖表 */}
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="flex-shrink-0 md:w-64">
-          <ResultCard
-            title="99% 下行虧損"
-            value={fmtPct(varResult.var99)}
-            color={colorByReturn(varResult.var99)}
-            subtitle={`第 1 百分位 · 有 1% 機率虧損超過 ${(Math.abs(varResult.var99) * 100).toFixed(1)}%`}
-          />
-        </div>
-        <div className="flex-1 min-w-0">
-          <VarHistogram returns={varResult.sorted} var95={varResult.var95} var99={varResult.var99} />
-        </div>
+      {/* 99% 參考橫列 */}
+      <div className="bg-elevated border border-[rgba(154,122,46,0.12)] rounded-lg px-[18px] py-3 flex items-center flex-wrap gap-x-3.5 gap-y-1">
+        <span className="text-[16px] font-bold text-dim">99% 下行虧損</span>
+        <span className="w-px h-3.5 bg-[rgba(154,122,46,0.18)]" />
+        <span className="text-[11.5px] text-dim">第 1 百分位</span>
+        <span className="w-px h-3.5 bg-[rgba(154,122,46,0.18)]" />
+        <span className="font-serif text-[20px] font-bold num text-green-700">{fmtPct(varResult.var99)}</span>
+        <span className="w-px h-3.5 bg-[rgba(154,122,46,0.18)]" />
+        <span className="text-[11.5px] text-dim">有 1% 機率虧損超過 <span className="num font-semibold">{var99Pct}%</span></span>
+      </div>
+
+      {/* Histogram supporting visual */}
+      <div>
+        <VarHistogram returns={varResult.sorted} var95={varResult.var95} var99={varResult.var99} />
       </div>
     </SectionBlock>
   )
@@ -417,64 +422,52 @@ function VarBlock({ varResult, freqLabel }: { varResult: VaRResult; freqLabel: s
 // ── Monte Carlo block ─────────────────────────────────────────────────────────
 
 function McBlock({ mcResult, monthlyCount }: { mcResult: MonteCarloResult; monthlyCount: number }) {
-  const fiveYr = mcResult.fiveYear
-  const heroColor = fiveYr.p50 >= 1_000_000 ? 'green' : fiveYr.p50 >= 800_000 ? 'yellow' : 'red'
+  const horizons = [
+    { label: '1 年', data: mcResult.oneYear, isPrimaryMain: false },
+    { label: '3 年', data: mcResult.threeYear, isPrimaryMain: false },
+    { label: '5 年', data: mcResult.fiveYear, isPrimaryMain: true },
+  ] as const
+
   return (
     <SectionBlock
       title="未來資產淨值模擬"
-      subtitle={`蒙地卡羅，初始 100 萬，模擬 100 條路徑 · 使用月報酬 ${monthlyCount} 筆`}
+      subtitle={`蒙地卡羅 · 初始 100 萬 / 模擬 100 條路徑 · 月報酬 ${monthlyCount} 筆`}
     >
-      {/* Hero 列：5 年中位情境 */}
-      <ResultCard
-        title="5 年中位情境"
-        value={fmtWan(fiveYr.p50)}
-        color={heroColor}
-        emphasis="hero"
-        subtitle={`悲觀 ${fmtWan(fiveYr.p5)} ~ 樂觀 ${fmtWan(fiveYr.p95)}（μ=${fmtPct(mcResult.mu, 2)} / σ=${fmtPct(mcResult.sigma, 2)}）`}
-      />
-
-      {/* 中層：1/3/5 年三組區塊 */}
-      <div className="grid grid-cols-3 gap-3">
-        {([
-          { label: '1 年', data: mcResult.oneYear },
-          { label: '3 年', data: mcResult.threeYear },
-          { label: '5 年', data: mcResult.fiveYear },
-        ] as const).map(({ label, data }) => (
-          <div key={label} className="bg-elevated rounded-xl p-4">
-            <p className="text-[18px] font-bold text-main mb-2">{label}</p>
-            <div className="space-y-1">
-              <div className="flex justify-between text-small">
-                <span className="text-green-700 font-medium">樂觀情境</span>
-                <span className="num text-main">{(data.p95 / 10000).toFixed(1)} 萬</span>
-              </div>
-              <div className="flex justify-between text-small">
-                <span className="text-blue-600 font-medium">中位情境</span>
-                <span className="num text-main">{(data.p50 / 10000).toFixed(1)} 萬</span>
-              </div>
-              <div className="flex justify-between text-small">
-                <span className="text-red-600 font-medium">悲觀情境</span>
-                <span className="num text-main">{(data.p5 / 10000).toFixed(1)} 萬</span>
-              </div>
+      {/* 3 卡並排：1 年 / 3 年 / 5 年（5 年為主判斷） */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {horizons.map(({ label, data, isPrimaryMain }) => {
+          const cardCls = isPrimaryMain
+            ? 'relative bg-[#f4ead8] border-2 border-[#c9a84c] rounded-lg px-[18px] py-4'
+            : 'bg-card2 border border-base rounded-lg px-[18px] py-4'
+          const numSize = isPrimaryMain ? 'text-[40px]' : 'text-[36px]'
+          const numClass = data.p50 >= 1_000_000 ? 'text-red-700' : data.p50 >= 800_000 ? 'text-amber-700' : 'text-green-700'
+          return (
+            <div key={label} className={cardCls}>
+              {isPrimaryMain && (
+                <div className="absolute top-2.5 right-3.5 flex items-center gap-1.5">
+                  <span className="text-[10.5px] bg-gold-dark text-white px-2 py-0.5 rounded-full font-semibold">主判斷</span>
+                </div>
+              )}
+              <p className="text-[18px] font-bold text-main">{label}</p>
+              <p className="text-[11px] text-dim mb-3">投影終值</p>
+              <p className="text-[13px] text-dim mb-1">中位情境</p>
+              <p className={`font-serif ${numSize} font-bold leading-none num ${numClass}`}>
+                {fmtWan(data.p50)}
+              </p>
+              <p className="text-[11px] text-dim mt-2">
+                悲觀 <span className="num font-semibold">{fmtWan(data.p5)}</span> ~ 樂觀 <span className="num font-semibold">{fmtWan(data.p95)}</span>
+              </p>
+              {isPrimaryMain && (
+                <p className="text-[11px] text-dim mt-1">
+                  μ=<span className="num font-semibold">{fmtPct(mcResult.mu, 2)}</span> / σ=<span className="num font-semibold">{fmtPct(mcResult.sigma, 2)}</span>
+                </p>
+              )}
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       <FanChart paths={mcResult.allPathsMonthly} />
-
-      {/* 弱化：模擬基本參數 */}
-      <div className="border-t border-base pt-3">
-        <p className="text-label text-faint mb-1.5">模擬基本參數</p>
-        <p className="text-small text-dim num">
-          μ（月均報酬）<span className={`font-semibold ${mcResult.mu > 0 ? 'text-red-700' : mcResult.mu < 0 ? 'text-green-700' : 'text-main'}`}>{fmtPct(mcResult.mu, 4)}</span>
-          {' · '}
-          σ（月報酬標準差）<span className="font-semibold">{(mcResult.sigma * 100).toFixed(4)}%</span>
-          {' · '}
-          模擬路徑數 <span className="font-semibold">100 條</span>
-          {' · '}
-          月報酬筆數 <span className="font-semibold">{monthlyCount} 筆</span>
-        </p>
-      </div>
     </SectionBlock>
   )
 }

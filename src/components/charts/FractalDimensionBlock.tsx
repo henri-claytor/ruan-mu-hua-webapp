@@ -76,50 +76,92 @@ interface ScaleCardProps {
   label: string
   windowDesc: string
   scale: HurstResult
+  isPrimaryMain?: boolean
   showSampleWarning?: boolean
 }
 
-function ScaleCard({ label, windowDesc, scale, showSampleWarning }: ScaleCardProps) {
+function ScaleCard({ label, windowDesc, scale, isPrimaryMain, showSampleWarning }: ScaleCardProps) {
   const d = hurstToFractalDimension(scale.h)
   const valid = Number.isFinite(d)
   const numClass =
     colorForD(d) === 'red' ? 'text-red-700' :
     colorForD(d) === 'green' ? 'text-green-700' :
     'text-main'
+  const cardCls = isPrimaryMain
+    ? 'relative bg-[#f4ead8] border-2 border-[#c9a84c] rounded-lg px-[18px] py-4'
+    : 'bg-card2 border border-base rounded-lg px-[18px] py-4'
+  const numSize = isPrimaryMain ? 'text-[40px]' : 'text-[36px]'
 
-  return (
-    <div className="space-y-2">
-      <div className="text-center">
+  if (!valid) {
+    return (
+      <div className={cardCls}>
         <p className="text-[18px] font-bold text-main">{label}</p>
-        <p className="text-[11px] text-dim">{windowDesc}</p>
+        <p className="text-[11px] text-dim mb-3">{windowDesc}</p>
+        <p className="text-small text-faint">資料不足</p>
       </div>
-      {valid ? (
-        <>
-          <div className="bg-card2 border border-base rounded-xl px-4 py-3 text-center">
-            <p className="text-[13px] text-dim mb-1">分形維度 D</p>
-            <p className={`font-serif text-display font-bold leading-none num ${numClass}`}>
-              {fmtRatio(d)}
-            </p>
-          </div>
-          <p className="text-[11px] text-center text-dim">
-            H = <span className="num font-semibold">{fmtRatio(scale.h)}</span>（D = 2 − H）
-          </p>
-          <div className="text-center">
-            <span className={`inline-block text-[10.5px] px-2 py-0.5 rounded-full font-semibold ${
-              CHIP_STYLE[classifyFractalDimension(d)]
-            }`}>
-              {fractalRegimeLabel(classifyFractalDimension(d))}
-            </span>
-          </div>
-        </>
-      ) : (
-        <div className="bg-elevated rounded-xl p-4 text-center">
-          <p className="text-small text-faint">資料不足</p>
+    )
+  }
+  return (
+    <div className={cardCls}>
+      {isPrimaryMain && (
+        <div className="absolute top-2.5 right-3.5 flex items-center gap-1.5">
+          <span className="text-[10.5px] bg-gold-dark text-white px-2 py-0.5 rounded-full font-semibold">主判斷</span>
         </div>
       )}
-      {showSampleWarning && valid && (
-        <p className="text-[10.5px] text-center text-faint">樣本較小，誤差較大</p>
+      <p className="text-[18px] font-bold text-main">{label}</p>
+      <p className="text-[11px] text-dim mb-3">{windowDesc}</p>
+      <p className="text-[13px] text-dim mb-1">分形維度 D</p>
+      <p className={`font-serif ${numSize} font-bold leading-none num ${numClass}`}>
+        {fmtRatio(d)}
+      </p>
+      <p className="text-[11px] text-dim mt-2">
+        H = <span className="num font-semibold">{fmtRatio(scale.h)}</span>（D = 2 − H）
+      </p>
+      <div className="mt-2">
+        <span className={`inline-block text-[10.5px] px-2 py-0.5 rounded-full font-semibold ${
+          CHIP_STYLE[classifyFractalDimension(d)]
+        }`}>
+          {fractalRegimeLabel(classifyFractalDimension(d))}
+        </span>
+      </div>
+      {showSampleWarning && (
+        <p className="text-[10.5px] text-faint mt-1">樣本較小，誤差較大</p>
       )}
+    </div>
+  )
+}
+
+// 長期橫向參考列
+function ReferenceRow({ scale }: { scale: HurstResult }) {
+  const d = hurstToFractalDimension(scale.h)
+  const valid = Number.isFinite(d)
+  if (!valid) {
+    return (
+      <div className="bg-elevated border border-[rgba(154,122,46,0.12)] rounded-lg px-[18px] py-3 text-small text-faint">
+        長期 · 資料不足
+      </div>
+    )
+  }
+  const numClass =
+    colorForD(d) === 'red' ? 'text-red-700' :
+    colorForD(d) === 'green' ? 'text-green-700' :
+    'text-main'
+  return (
+    <div className="bg-elevated border border-[rgba(154,122,46,0.12)] rounded-lg px-[18px] py-3 flex items-center flex-wrap gap-x-3.5 gap-y-1">
+      <span className="text-[16px] font-bold text-dim">長期</span>
+      <span className="w-px h-3.5 bg-[rgba(154,122,46,0.18)]" />
+      <span className="text-[11.5px] text-dim">最近 240 日</span>
+      <span className="w-px h-3.5 bg-[rgba(154,122,46,0.18)]" />
+      <span className="text-[11.5px] text-dim">分形維度 D</span>
+      <span className={`font-serif text-[20px] font-bold num ${numClass}`}>{fmtRatio(d)}</span>
+      <span className="w-px h-3.5 bg-[rgba(154,122,46,0.18)]" />
+      <span className="text-[11.5px] text-dim">H = <span className="num font-semibold">{fmtRatio(scale.h)}</span></span>
+      <span className="w-px h-3.5 bg-[rgba(154,122,46,0.18)]" />
+      <span className={`text-[10.5px] px-2 py-0.5 rounded-full font-semibold ${
+        CHIP_STYLE[classifyFractalDimension(d)]
+      }`}>
+        {fractalRegimeLabel(classifyFractalDimension(d))}
+      </span>
     </div>
   )
 }
@@ -232,8 +274,8 @@ export default function FractalDimensionBlock({ hurst }: Props) {
             <p className={`text-body font-semibold ${banner.textColor}`}>{banner.text}</p>
           </div>
 
-          {/* 三卡片並列 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* 主判斷（中期）+ 副卡（短期） */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <ScaleCard
               label="短期"
               windowDesc="最近 60 個交易日（約 3 個月）"
@@ -244,13 +286,12 @@ export default function FractalDimensionBlock({ hurst }: Props) {
               label="中期"
               windowDesc="最近 120 個交易日（約 6 個月）"
               scale={hurst.medium}
-            />
-            <ScaleCard
-              label="長期"
-              windowDesc="最近 240 個交易日（約 1 年）"
-              scale={hurst.long}
+              isPrimaryMain
             />
           </div>
+
+          {/* 長期橫向參考列 */}
+          <ReferenceRow scale={hurst.long} />
 
           {/* 光譜圖 */}
           <div className="border-t border-base pt-4">

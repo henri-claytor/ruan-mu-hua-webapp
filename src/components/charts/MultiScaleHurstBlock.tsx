@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import ResultCard from '../ResultCard'
 import HurstLineChart from './HurstLineChart'
 import type { HurstResult, MultiScaleHurstResult, Divergence } from '../../lib/hurst'
 import { METRIC_LABELS as L } from '../../lib/labels'
@@ -59,32 +58,63 @@ interface ScaleCardProps {
   label: string
   windowDesc: string
   result: HurstResult
+  isPrimaryMain?: boolean
   showSampleWarning?: boolean
 }
 
-function ScaleCard({ label, windowDesc, result, showSampleWarning }: ScaleCardProps) {
-  // 底層值：R/S 迴歸點集 or 單點 fallback
+function ScaleCard({ label, windowDesc, result, isPrimaryMain, showSampleWarning }: ScaleCardProps) {
   const baseValue = result.points.length >= 2
     ? `R/S 迴歸斜率（${result.points.length} 點）`
     : `R/S 單點公式（n=${result.n}）`
+  const cardCls = isPrimaryMain
+    ? 'relative bg-[#f4ead8] border-2 border-[#c9a84c] rounded-lg px-[18px] py-4'
+    : 'bg-card2 border border-base rounded-lg px-[18px] py-4'
+  const numSize = isPrimaryMain ? 'text-[40px]' : 'text-[36px]'
+  const numClass =
+    colorForH(result.h) === 'red'   ? 'text-red-700' :
+    colorForH(result.h) === 'green' ? 'text-green-700' :
+    'text-main'
 
   return (
-    <div className="space-y-2">
-      <div className="text-center">
-        <p className="text-[18px] font-bold text-main">{label}</p>
-        <p className="text-[11px] text-dim">{windowDesc}</p>
-      </div>
-      <ResultCard
-        title={L.hurstH}
-        value={fmtRatio(result.h)}
-        color={colorForH(result.h)}
-        emphasis="hero"
-      />
-      <p className="text-[11px] text-center text-dim">{baseValue}</p>
-      <p className="text-[11px] text-center text-dim">{result.interpretation}</p>
-      {showSampleWarning && (
-        <p className="text-[10.5px] text-center text-faint">樣本較小，誤差較大</p>
+    <div className={cardCls}>
+      {isPrimaryMain && (
+        <div className="absolute top-2.5 right-3.5 flex items-center gap-1.5">
+          <span className="text-[10.5px] bg-gold-dark text-white px-2 py-0.5 rounded-full font-semibold">主判斷</span>
+        </div>
       )}
+      <p className="text-[18px] font-bold text-main">{label}</p>
+      <p className="text-[11px] text-dim mb-3">{windowDesc}</p>
+      <p className="text-[13px] text-dim mb-1">{L.hurstH}</p>
+      <p className={`font-serif ${numSize} font-bold leading-none num ${numClass}`}>
+        {fmtRatio(result.h)}
+      </p>
+      <p className="text-[11px] text-dim mt-2">{baseValue}</p>
+      <p className={`text-[11px] mt-2 leading-[1.5] ${isPrimaryMain ? 'text-main font-semibold' : 'text-dim'}`}>
+        {result.interpretation}
+      </p>
+      {showSampleWarning && (
+        <p className="text-[10.5px] text-faint leading-[1.5]">樣本較小，誤差較大</p>
+      )}
+    </div>
+  )
+}
+
+// 長期橫向參考列
+function ReferenceRow({ result }: { result: HurstResult }) {
+  const numClass =
+    colorForH(result.h) === 'red'   ? 'text-red-700' :
+    colorForH(result.h) === 'green' ? 'text-green-700' :
+    'text-main'
+  return (
+    <div className="bg-elevated border border-[rgba(154,122,46,0.12)] rounded-lg px-[18px] py-3 flex items-center flex-wrap gap-x-3.5 gap-y-1">
+      <span className="text-[16px] font-bold text-dim">長期</span>
+      <span className="w-px h-3.5 bg-[rgba(154,122,46,0.18)]" />
+      <span className="text-[11.5px] text-dim">最近 240 日</span>
+      <span className="w-px h-3.5 bg-[rgba(154,122,46,0.18)]" />
+      <span className="text-[11.5px] text-dim">{L.hurstH}</span>
+      <span className={`font-serif text-[20px] font-bold num ${numClass}`}>{fmtRatio(result.h)}</span>
+      <span className="w-px h-3.5 bg-[rgba(154,122,46,0.18)]" />
+      <span className="text-[11.5px] text-dim">{result.interpretation}</span>
     </div>
   )
 }
@@ -99,6 +129,7 @@ interface Props {
 
 export default function MultiScaleHurstBlock({ result, titleOverride }: Props) {
   const [open, setOpen] = useState(true)
+  const [stepsOpen, setStepsOpen] = useState(false)
   const banner = bannerStyle(result.divergence)
   const long = result.long
 
@@ -126,8 +157,8 @@ export default function MultiScaleHurstBlock({ result, titleOverride }: Props) {
             <p className={`text-body font-semibold ${banner.textColor}`}>{banner.text}</p>
           </div>
 
-          {/* 三卡片並列 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* 主判斷 + 副卡（中期 + 短期） */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <ScaleCard
               label="短期"
               windowDesc="最近 60 個交易日（約 3 個月）"
@@ -138,25 +169,29 @@ export default function MultiScaleHurstBlock({ result, titleOverride }: Props) {
               label="中期"
               windowDesc="最近 120 個交易日（約 6 個月）"
               result={result.medium}
-            />
-            <ScaleCard
-              label="長期"
-              windowDesc="最近 240 個交易日（約 1 年）"
-              result={result.long}
+              isPrimaryMain
             />
           </div>
 
-          {/* 累積偏差圖：只用長期窗口 */}
+          {/* 長期橫向參考列 */}
+          <ReferenceRow result={result.long} />
+
+          {/* 累積偏差圖 */}
           <div className="border-t border-base pt-4">
             <HurstLineChart cumDeviations={long.cumDeviations} subtitle="長期窗口（240日）" />
           </div>
 
-          {/* 計算步驟（僅長期） */}
+          {/* 計算步驟（預設摺疊） */}
           <div className="border-t border-base pt-4">
-            <h3 className="text-label font-semibold text-dim uppercase tracking-wider mb-3">
-              計算步驟（長期窗口 240 日，多窗口 R/S 迴歸法）
-            </h3>
-            <div className="bg-elevated rounded-lg p-4 text-small num space-y-2 text-main">
+            <button
+              type="button"
+              onClick={() => setStepsOpen((v) => !v)}
+              className="text-small text-dim hover:text-main transition-colors"
+            >
+              {stepsOpen ? '▼ 收折計算步驟' : '▶ 展開計算步驟（長期 240 日，多窗口 R/S 迴歸法）'}
+            </button>
+            {stepsOpen && (
+            <div className="mt-3 bg-elevated rounded-lg p-4 text-small num space-y-2 text-main">
               {long.points.length >= 2 ? (
                 <>
                   <p className="text-dim">對每個子窗口尺寸 n，將序列切成不重疊子窗口計算 R/S：</p>
@@ -196,6 +231,7 @@ export default function MultiScaleHurstBlock({ result, titleOverride }: Props) {
                 </>
               )}
             </div>
+            )}
           </div>
         </div>
       )}

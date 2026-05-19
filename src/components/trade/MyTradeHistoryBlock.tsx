@@ -7,7 +7,7 @@ import { fmtMoney, fmtPct } from '../../utils/format'
 interface Props {
   stockCode: string
   stockName: string
-  /** 市場長期月賠率（來自 multi-scale EV 的 long.actualOdds），無資料時傳 null */
+  /** 市場長期月損益比（來自 multi-scale EV 的 long.actualOdds），無資料時傳 null */
   marketPayoff: number | null
 }
 
@@ -78,20 +78,20 @@ export default function MyTradeHistoryBlock({ stockCode, stockName, marketPayoff
         </span>
       </p>
 
-      {/* 市場 vs 我賠率對照 */}
+      {/* 市場 vs 我損益比對照 */}
       {hasMarket ? (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-2">
           <p className="text-label text-blue-700 uppercase tracking-wider">
-            市場 vs 我的賠率對照
+            市場 vs 我的損益比對照
           </p>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-caption text-dim">市場長期月賠率</p>
+              <p className="text-caption text-dim">市場長期月損益比</p>
               <p className="text-h1 num font-bold text-main">{fmtRatio(marketPayoff!)}</p>
               <p className="text-caption text-faint">來自 EV 多尺度長期資料</p>
             </div>
             <div>
-              <p className="text-caption text-dim">你的交易賠率</p>
+              <p className="text-caption text-dim">你的交易損益比</p>
               <p className="text-h1 num font-bold text-main">{fmtRatio(stats.payoffRatio)}</p>
               <p className="text-caption text-faint">
                 Avg Win {fmtPct(stats.avgWinReturnRate)} ÷ |Avg Loss {fmtPct(stats.avgLossReturnRate)}|
