@@ -297,44 +297,7 @@ export default function IndividualPage() {
             </button>
           </div>
 
-          {/* 1. 期望報酬與賠率優勢（EV，多尺度年化） */}
-          {results.evMulti ? (
-            <MultiScaleEVBlock
-              result={results.evMulti}
-              monthlyCount={results.monthlyCount}
-              dailyCount={results.dailyCount}
-            />
-          ) : (
-            <div className="bg-elevated border border-base rounded-2xl px-6 py-4">
-              <p className="text-small text-dim">
-                <span className="font-semibold text-main">期望報酬與賠率優勢未顯示：</span>
-                月報酬資料不足 60 筆（目前 {results.monthlyCount} 筆），需要約 5 年的月報酬資料才能使用多尺度 EV。
-              </p>
-            </div>
-          )}
-
-          {/* 2. 下行風險：最壞情境虧損（VaR） */}
-          <VarBlock varResult={results.var} freqLabel={results.freqLabel} />
-
-          {/* 3. 趨勢延續性偵測（Hurst） */}
-          {results.hurst ? (
-            <MultiScaleHurstBlock result={results.hurst} />
-          ) : (
-            <div className="bg-elevated border border-base rounded-2xl px-6 py-4">
-              <p className="text-small text-dim">
-                <span className="font-semibold text-main">趨勢延續性偵測未顯示：</span>
-                日報酬資料不足 240 筆（目前 {results.dailyCount} 筆），需要約 1 年的交易紀錄才能計算多尺度 Hurst。
-              </p>
-            </div>
-          )}
-
-          {/* 3b. 技術指標：分形維度 D（依 Hurst 推算） */}
-          {results.hurst && <FractalDimensionBlock hurst={results.hurst} />}
-
-          {/* 4. 未來資產淨值模擬（蒙地卡羅） */}
-          <McBlock mcResult={results.mc} monthlyCount={results.monthlyCount} />
-
-          {/* 5. 建議行動參考 — 用 primary scale（medium > short > long） */}
+          {/* 1. 操作建議（移到最上，使用者先看結論） */}
           {(() => {
             const primary = results.evMulti?.medium ?? results.evMulti?.short ?? results.evMulti?.long ?? null
             return (
@@ -351,7 +314,44 @@ export default function IndividualPage() {
             )
           })()}
 
-          {/* 6. 我在這檔的交易紀錄（雙向跨頁連結反向 + 市場 vs 我的賠率對照）*/}
+          {/* 2. 期望報酬與損益比優勢（EV，多尺度年化） */}
+          {results.evMulti ? (
+            <MultiScaleEVBlock
+              result={results.evMulti}
+              monthlyCount={results.monthlyCount}
+              dailyCount={results.dailyCount}
+            />
+          ) : (
+            <div className="bg-elevated border border-base rounded-2xl px-6 py-4">
+              <p className="text-small text-dim">
+                <span className="font-semibold text-main">期望報酬與損益比優勢未顯示：</span>
+                月報酬資料不足 60 筆（目前 {results.monthlyCount} 筆），需要約 5 年的月報酬資料才能使用多尺度 EV。
+              </p>
+            </div>
+          )}
+
+          {/* 3. 下行風險：最壞情境虧損（VaR） */}
+          <VarBlock varResult={results.var} freqLabel={results.freqLabel} />
+
+          {/* 4. 趨勢延續性偵測（Hurst） */}
+          {results.hurst ? (
+            <MultiScaleHurstBlock result={results.hurst} />
+          ) : (
+            <div className="bg-elevated border border-base rounded-2xl px-6 py-4">
+              <p className="text-small text-dim">
+                <span className="font-semibold text-main">趨勢延續性偵測未顯示：</span>
+                日報酬資料不足 240 筆（目前 {results.dailyCount} 筆），需要約 1 年的交易紀錄才能計算多尺度 Hurst。
+              </p>
+            </div>
+          )}
+
+          {/* 5. 走勢規律性偵測（分形維度 D，依 Hurst 推算） */}
+          {results.hurst && <FractalDimensionBlock hurst={results.hurst} />}
+
+          {/* 6. 未來資產淨值模擬（蒙地卡羅） */}
+          <McBlock mcResult={results.mc} monthlyCount={results.monthlyCount} />
+
+          {/* 7. 我在這檔的交易紀錄 */}
           <MyTradeHistoryBlock
             stockCode={results.stockCode}
             stockName={results.stockName}

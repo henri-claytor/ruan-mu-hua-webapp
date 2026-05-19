@@ -190,21 +190,30 @@ interface ActionGuideProps {
   title?: string
 }
 
-export default function ActionGuide({ items, title = '建議行動參考' }: ActionGuideProps) {
+export default function ActionGuide({ items, title = '操作建議' }: ActionGuideProps) {
   if (items.length === 0) return null
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 space-y-3">
-      <h2 className="text-h2 font-semibold text-blue-700">{title}</h2>
-      <ul className="space-y-2">
+    <div className="bg-[#f4ead8] border-2 border-[#c9a84c] rounded-2xl p-6 space-y-3 shadow-sm">
+      <div className="flex items-baseline gap-2 flex-wrap">
+        <span className="text-[22px]" aria-hidden>💡</span>
+        <h2 className="font-serif text-[20px] font-bold text-main tracking-wide">{title}</h2>
+        <span className="text-[11px] text-gold-dark px-2 py-0.5 rounded-full bg-[rgba(154,122,46,0.1)]">
+          {items.length} 條
+        </span>
+      </div>
+      <p className="text-[12px] text-dim -mt-1">依下方多維度分析（EV / 風險 / 趨勢 / 模擬）自動產生</p>
+      <ul className="space-y-2 pt-1">
         {items.map((item, i) => (
-          <li key={i} className="flex gap-2 text-body text-main">
-            <span className="text-blue-600 shrink-0">•</span>
+          <li key={i} className="flex gap-2.5 text-[13.5px] text-main leading-relaxed">
+            <span className="flex-shrink-0 w-5 h-5 mt-0.5 rounded-full bg-gold-dark text-white text-[11px] font-bold flex items-center justify-center">
+              {i + 1}
+            </span>
             <span>{item}</span>
           </li>
         ))}
       </ul>
-      <p className="text-faint text-small pt-2 border-t border-blue-200">
+      <p className="text-faint text-[11px] pt-3 border-t border-[rgba(154,122,46,0.2)]">
         以上為統計模型參考建議，非投資意見，不構成買賣依據。
       </p>
     </div>
