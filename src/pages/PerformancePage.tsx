@@ -59,9 +59,9 @@ export default function PerformancePage() {
 
   const PDF_SECTION_IDS = [
     'performance-banner',
-    'performance-dashboard',
-    'performance-diagnosis',
     'performance-recommendations',
+    'performance-diagnosis',
+    'performance-dashboard',
     'performance-matrix',
     'performance-charts',
     'performance-trades',
@@ -166,26 +166,26 @@ export default function PerformancePage() {
         </div>
       )}
 
-      {/* 整體績效 Dashboard */}
-      {performance && (
-        <div id="performance-dashboard">
-          <PortfolioPerformanceBlock performance={performance} />
-        </div>
+      {/* 1. 重點建議（移到頂部 — 結論優先） */}
+      {hasTrades && recommendations.length > 0 && (
+        <RecommendationPanel recommendations={recommendations} />
       )}
 
-      {/* 自動診斷面板 */}
+      {/* 2. 自動診斷面板 */}
       {hasTrades && (
         <div id="performance-diagnosis">
           <DiagnosisPanel diagnoses={diagnoses} />
         </div>
       )}
 
-      {/* 重點建議 */}
-      {hasTrades && recommendations.length > 0 && (
-        <RecommendationPanel recommendations={recommendations} />
+      {/* 3. 整體績效 Dashboard（總實現損益為主判斷） */}
+      {performance && (
+        <div id="performance-dashboard">
+          <PortfolioPerformanceBlock performance={performance} />
+        </div>
       )}
 
-      {/* 個股矩陣表 */}
+      {/* 4. 個股矩陣表 */}
       {stockStats.length > 0 && (
         <div id="performance-matrix">
           <StockQuadrantMatrix

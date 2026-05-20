@@ -160,7 +160,7 @@ export default function StockQuadrantMatrix({ stocks, filterStockId, anchorId, d
       <div className="px-6 py-4 border-b border-base">
         <h2 className="font-serif text-h2 font-bold text-main tracking-wide">個股分析</h2>
         <p className="text-caption text-faint mt-0.5">
-          賠率 × 獲利因子矩陣 · 共 {stocks.length} 檔個股
+          損益比 × 獲利因子矩陣 · 共 {stocks.length} 檔個股
           {filter !== 'ALL' && (
             <span className="text-blue-700 ml-1">
               · 已篩選：{QUADRANT_FILTER_LABELS[filter]}（{filtered.length} 檔）
@@ -238,7 +238,7 @@ export default function StockQuadrantMatrix({ stocks, filterStockId, anchorId, d
                 勝率{arrow('winRate')}
               </th>
               <th className="px-3 py-2 text-right cursor-pointer hover:text-main" onClick={() => toggleSort('payoffRatio')}>
-                賠率{arrow('payoffRatio')}
+                損益比{arrow('payoffRatio')}
               </th>
               <th className="px-3 py-2 text-right cursor-pointer hover:text-main" onClick={() => toggleSort('profitFactor')}>
                 獲利因子{arrow('profitFactor')}

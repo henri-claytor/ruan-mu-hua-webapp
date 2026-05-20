@@ -23,17 +23,34 @@ const TONE_TO_CLASS: Record<MetricTone, string> = {
   default: 'neu',
 }
 
-function MetricCard({ label, value, tone = 'neu', base, note }: {
+function MetricCard({ label, value, tone = 'neu', base, note, isPrimaryMain }: {
   label: string
   value: string
   tone?: MetricTone
   /** 底層值（dim 11px 副行）*/
   base?: string
   note?: string
+  /** 主判斷強化樣式（金邊 + chip + 40px 數字） */
+  isPrimaryMain?: boolean
 }) {
   const toneClass = TONE_TO_CLASS[tone] ?? 'neu'
+  if (isPrimaryMain) {
+    return (
+      <div className="relative bg-[#f4ead8] border-2 border-[#c9a84c] rounded-lg px-[18px] py-4 h-full">
+        <div className="absolute top-2.5 right-3.5">
+          <span className="text-[10.5px] bg-gold-dark text-white px-2 py-0.5 rounded-full font-semibold">主判斷</span>
+        </div>
+        <div className="metric-lbl">{label}</div>
+        <div className={`font-serif text-[40px] font-bold leading-none num ${toneClass === 'pos' ? 'text-red-700' : toneClass === 'neg' ? 'text-green-700' : 'text-main'}`}>
+          {value}
+        </div>
+        {base && <div className="metric-note text-dim mt-2">{base}</div>}
+        {note && <div className="metric-note">{note}</div>}
+      </div>
+    )
+  }
   return (
-    <div className="metric-card">
+    <div className="metric-card h-full">
       <div className="metric-lbl">{label}</div>
       <div className={`metric-val ${toneClass}`}>{value}</div>
       {base && <div className="metric-note text-dim">{base}</div>}
@@ -74,14 +91,17 @@ export default function PortfolioPerformanceBlock({ performance: p }: Props) {
         </div>
       </div>
 
-      {/* 8 張 metric-card（2 列 × 4 欄桌機 / 2 欄手機） */}
+      {/* metric-card：總實現損益主判斷 (col-span-2) + 其他 7 卡 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard
-          label="總實現損益"
-          value={fmtMoney(p.totalPnl)}
-          tone={colorByReturn(p.totalPnl)}
-          base={`總投入 ${fmtMoney(p.totalInvested)}`}
-        />
+        <div className="md:col-span-2">
+          <MetricCard
+            label="總實現損益"
+            value={fmtMoney(p.totalPnl)}
+            tone={colorByReturn(p.totalPnl)}
+            base={`總投入 ${fmtMoney(p.totalInvested)}`}
+            isPrimaryMain
+          />
+        </div>
         <MetricCard
           label="整體報酬率"
           value={fmtPct(p.overallReturn)}
