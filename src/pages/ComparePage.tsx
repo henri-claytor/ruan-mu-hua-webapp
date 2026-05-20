@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import StockSelector from '../components/StockSelector'
 import { calcEV, type EVResult } from '../lib/ev'
 import { calcVaR, type VaRResult } from '../lib/var'
@@ -6,11 +6,7 @@ import { calcHurst, type HurstResult } from '../lib/hurst'
 import { fetchMonthlyReturns, fetchDailyReturns } from '../lib/api'
 import { useAppStore, type CompareStock } from '../store/useAppStore'
 import ActionGuide, { buildCompareGuide } from '../components/ActionGuide'
-import { fmtPct } from '../utils/format'
-
-function fmt(n: number, digits = 2): string {
-  return (n * 100).toFixed(digits) + '%'
-}
+import { fmtPct, fmtWinRate, fmtRatio } from '../utils/format'
 
 // ── Derived results per stock ─────────────────────────────────────────────────
 
@@ -39,7 +35,7 @@ function calcResult(stock: CompareStock): StockResult {
   }
 }
 
-// ── Compare table helpers ─────────────────────────────────────────────────────
+// ── Compare advantage helpers ─────────────────────────────────────────────────
 
 type AdvantageMode = 'higher' | 'lower' | 'none'
 
@@ -48,36 +44,6 @@ function advantage(a: number | null, b: number | null, mode: AdvantageMode) {
   if (a === b) return { a: false, b: false }
   if (mode === 'higher') return { a: a > b, b: b > a }
   return { a: a < b, b: b < a }
-}
-
-interface CompareRowProps {
-  label: string
-  valA: string | null
-  valB: string | null
-  aWins: boolean
-  bWins: boolean
-}
-
-function CompareRow({ label, valA, valB, aWins, bWins }: CompareRowProps) {
-  return (
-    <tr className="border-t border-base">
-      <td className="px-4 py-3 text-small text-dim font-medium whitespace-nowrap">{label}</td>
-      <td
-        className={`px-4 py-3 text-small text-center font-semibold ${
-          aWins ? 'bg-green-50 text-green-700' : 'text-main'
-        }`}
-      >
-        {valA != null ? <span className="num">{valA}</span> : '－ 尚未選取'}
-      </td>
-      <td
-        className={`px-4 py-3 text-small text-center font-semibold ${
-          bWins ? 'bg-green-50 text-green-700' : 'text-main'
-        }`}
-      >
-        {valB != null ? <span className="num">{valB}</span> : '－ 尚未選取'}
-      </td>
-    </tr>
-  )
 }
 
 // ── Stock input panel ─────────────────────────────────────────────────────────
@@ -101,7 +67,7 @@ function StockPanel({ label, stock, loading, onSelect }: StockPanelProps) {
         <div className="text-caption text-faint space-y-0.5">
           <p>月報酬：{stock.monthlyReturns.length} 筆 ／ 日報酬：{stock.dailyReturns.length} 筆</p>
           {stock.dailyReturns.length > 0 && stock.dailyReturns.length < 252 && (
-            <p className="text-amber-600">日頻不足 252 筆，Hurst / VaR 將使用月頻</p>
+            <p className="text-amber-600">日頻不足 252 筆，趨勢強度 / 下行虧損將使用月頻</p>
           )}
         </div>
       )}
@@ -120,6 +86,12 @@ export default function ComparePage() {
 
   const [loadingA, setLoadingA] = useState(false)
   const [loadingB, setLoadingB] = useState(false)
+
+  // 手動「開始比較」狀態：兩股 stocks/returns 變動會 reset
+  const [computed, setComputed] = useState(false)
+  useEffect(() => {
+    setComputed(false)
+  }, [compareA.stockCode, compareA.monthlyReturns, compareB.stockCode, compareB.monthlyReturns])
 
   async function handleSelectA(code: string, name: string) {
     setCompareA({ stockCode: code, name, monthlyReturns: [], dailyReturns: [] })
@@ -155,8 +127,21 @@ export default function ComparePage() {
 
   const resultA = calcResult(compareA)
   const resultB = calcResult(compareB)
-  const hasAny = resultA.ev !== null || resultB.ev !== null
+  const bothReady = resultA.ev !== null && resultB.ev !== null
+  const isLoading = loadingA || loadingB
 
+  function handleCompare() {
+    if (!bothReady) return
+    setComputed(true)
+  }
+
+  const compareButtonLabel = isLoading
+    ? '載入中...'
+    : computed
+    ? '重新比較'
+    : '開始比較'
+
+  // 各指標勝出
   const evAdv = advantage(resultA.ev?.ev ?? null, resultB.ev?.ev ?? null, 'higher')
   const winAdv = advantage(resultA.ev?.winRate ?? null, resultB.ev?.winRate ?? null, 'higher')
   const oddsAdv = advantage(resultA.ev?.actualOdds ?? null, resultB.ev?.actualOdds ?? null, 'higher')
@@ -183,13 +168,20 @@ export default function ComparePage() {
     ? `${compareB.stockCode} ${compareB.name}`
     : '股票 B'
 
+  // 綜合勝出方統計
+  const winsA = [evAdv.a, winAdv.a, oddsAdv.a, var95Adv.a, var99Adv.a, hurstAdv.a].filter(Boolean).length
+  const winsB = [evAdv.b, winAdv.b, oddsAdv.b, var95Adv.b, var99Adv.b, hurstAdv.b].filter(Boolean).length
+  const ties = 6 - winsA - winsB
+  const verdictName = winsA > winsB ? labelA : winsB > winsA ? labelB : '平手'
+  const hasVerdict = winsA !== winsB
+
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="font-serif text-h1 font-bold text-main tracking-wide">個股並排比較</h1>
           <p className="text-small text-dim mt-0.5">
-            選取兩支股票，並排比較 EV、VaR 與 Hurst 指數
+            選取兩支股票，並排比較期望報酬率、下行虧損與趨勢強度
           </p>
         </div>
         <button onClick={clearCompare} className="text-small text-red-500 hover:text-red-700 underline">
@@ -213,118 +205,132 @@ export default function ComparePage() {
         />
       </div>
 
-      {/* Comparison table */}
-      {hasAny ? (
-        <div className="bg-surface rounded-2xl border border-base overflow-hidden">
-          <div className="px-4 py-3 border-b border-base bg-elevated">
-            <p className="text-small text-faint">🟢 綠色背景 = 該項目較佳</p>
-          </div>
-          <table className="w-full">
-            <thead>
-              <tr className="bg-elevated">
-                <th className="px-4 py-3 text-left text-small text-dim font-semibold">指標</th>
-                <th className="px-4 py-3 text-center text-small text-blue-700 font-semibold">{labelA}</th>
-                <th className="px-4 py-3 text-center text-small text-blue-700 font-semibold">{labelB}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <CompareRow
-                label="期望值（EV）"
-                valA={resultA.ev ? fmtPct(resultA.ev.ev) : null}
-                valB={resultB.ev ? fmtPct(resultB.ev.ev) : null}
-                aWins={evAdv.a}
-                bWins={evAdv.b}
-              />
-              <CompareRow
-                label="勝率"
-                valA={resultA.ev ? fmt(resultA.ev.winRate) : null}
-                valB={resultB.ev ? fmt(resultB.ev.winRate) : null}
-                aWins={winAdv.a}
-                bWins={winAdv.b}
-              />
-              <CompareRow
-                label="實際損益比"
-                valA={resultA.ev ? resultA.ev.actualOdds.toFixed(2) : null}
-                valB={resultB.ev ? resultB.ev.actualOdds.toFixed(2) : null}
-                aWins={oddsAdv.a}
-                bWins={oddsAdv.b}
-              />
-              <CompareRow
-                label={`95% 下行虧損（虧損少者優）${resultA.freqLabel || resultB.freqLabel ? ` — A:${resultA.freqLabel || '—'} / B:${resultB.freqLabel || '—'}` : ''}`}
-                valA={resultA.var ? fmtPct(resultA.var.var95) : null}
-                valB={resultB.var ? fmtPct(resultB.var.var95) : null}
-                aWins={var95Adv.a}
-                bWins={var95Adv.b}
-              />
-              <CompareRow
-                label="99% 下行虧損（虧損少者優）"
-                valA={resultA.var ? fmtPct(resultA.var.var99) : null}
-                valB={resultB.var ? fmtPct(resultB.var.var99) : null}
-                aWins={var99Adv.a}
-                bWins={var99Adv.b}
-              />
-              <tr className="border-t border-base">
-                <td className="px-4 py-3 text-small text-dim font-medium">
-                  趨勢強度 H
-                  <br />
-                  <span className="text-caption text-faint font-normal">
-                    {resultA.freqLabel && `A:${resultA.freqLabel}`}
-                    {resultA.freqLabel && resultB.freqLabel && ' / '}
-                    {resultB.freqLabel && `B:${resultB.freqLabel}`}
-                  </span>
-                </td>
-                <td className={`px-4 py-3 text-small text-center ${hurstAdv.a ? 'bg-green-50 text-green-700' : 'text-main'}`}>
-                  {resultA.hurst ? (
-                    <span>
-                      {resultA.hurst.h.toFixed(3)}
-                      <br />
-                      <span className="text-caption text-dim">{resultA.hurst.interpretation}</span>
-                    </span>
-                  ) : '－ 尚未選取'}
-                </td>
-                <td className={`px-4 py-3 text-small text-center ${hurstAdv.b ? 'bg-green-50 text-green-700' : 'text-main'}`}>
-                  {resultB.hurst ? (
-                    <span>
-                      {resultB.hurst.h.toFixed(3)}
-                      <br />
-                      <span className="text-caption text-dim">{resultB.hurst.interpretation}</span>
-                    </span>
-                  ) : '－ 尚未選取'}
-                </td>
-              </tr>
-              <tr className="border-t border-base">
-                <td className="px-4 py-3 text-small text-dim font-medium">象限判斷</td>
-                <td className="px-4 py-3 text-center text-caption text-dim">
-                  {resultA.ev?.quadrant ?? '－ 尚未選取'}
-                </td>
-                <td className="px-4 py-3 text-center text-caption text-dim">
-                  {resultB.ev?.quadrant ?? '－ 尚未選取'}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      ) : (
+      {/* 開始比較按鈕 */}
+      <div className="flex justify-end">
+        <button
+          onClick={handleCompare}
+          disabled={!bothReady || isLoading}
+          className="btn btn-solid"
+        >
+          {compareButtonLabel}
+        </button>
+      </div>
+
+      {/* 空態 / 提示 */}
+      {!computed && !bothReady && !isLoading && (
         <div className="border-2 border-dashed border-base rounded-2xl p-8 text-center bg-elevated">
-          <p className="text-dim text-body">請在上方選取至少一支股票</p>
-          <p className="text-faint text-small mt-1">選取後比較表格將自動顯示</p>
+          <p className="text-dim text-body">請在上方選取兩支股票</p>
+          <p className="text-faint text-small mt-1">兩支股票選好後，按「開始比較」</p>
+        </div>
+      )}
+      {!computed && bothReady && !isLoading && (
+        <div className="border-2 border-dashed border-base rounded-2xl p-8 text-center bg-elevated">
+          <p className="text-dim text-body">已選好兩支股票，按「開始比較」查看結果</p>
         </div>
       )}
 
-      {/* 建議行動：兩股都有完整資料時才顯示 */}
-      {resultA.ev && resultB.ev && (
-        <ActionGuide
-          items={buildCompareGuide({
-            evA: resultA.ev.ev,
-            evB: resultB.ev.ev,
-            varA: resultA.var?.var95 ?? null,
-            varB: resultB.var?.var95 ?? null,
-            hurstA: resultA.hurst?.h ?? null,
-            hurstB: resultB.hurst?.h ?? null,
-            nameA: labelA,
-            nameB: labelB,
-          })}
-        />
+      {/* ─ 計算結果 ─ */}
+      {computed && bothReady && resultA.ev && resultB.ev && (
+        <>
+          {/* 1. 操作建議（金邊強化） */}
+          <ActionGuide
+            items={buildCompareGuide({
+              evA: resultA.ev.ev,
+              evB: resultB.ev.ev,
+              varA: resultA.var?.var95 ?? null,
+              varB: resultB.var?.var95 ?? null,
+              hurstA: resultA.hurst?.h ?? null,
+              hurstB: resultB.hurst?.h ?? null,
+              nameA: labelA,
+              nameB: labelB,
+            })}
+          />
+
+          {/* 2. 綜合勝出方主判斷卡 */}
+          <div className="relative bg-[#f4ead8] border-2 border-[#c9a84c] rounded-lg px-6 py-5">
+            <div className="absolute top-2.5 right-3.5">
+              <span className="text-[10.5px] bg-gold-dark text-white px-2 py-0.5 rounded-full font-semibold">綜合勝出方</span>
+            </div>
+            <p className="text-[18px] font-bold text-main">整體推薦</p>
+            <p className="text-[11px] text-dim mb-3">
+              6 項指標統計（期望報酬率 / 勝率 / 損益比 / 95% / 99% / 趨勢強度）
+            </p>
+            <p className={`font-serif text-[36px] font-bold leading-none ${hasVerdict ? 'text-red-700' : 'text-dim'}`}>
+              {verdictName}
+            </p>
+            <p className="text-[11.5px] text-dim mt-3">
+              {labelA} 勝 <span className="num font-semibold">{winsA}</span> 項 ·
+              {' '}{labelB} 勝 <span className="num font-semibold">{winsB}</span> 項 ·
+              {' '}平手 <span className="num font-semibold">{ties}</span> 項
+            </p>
+          </div>
+
+          {/* 3. 比較表（cmp-table 樣式） */}
+          <div className="bg-surface rounded-2xl border border-base overflow-hidden">
+            <div className="px-4 py-3 border-b border-base bg-elevated">
+              <p className="text-small text-faint">🟢 綠色背景 = 該項目較佳</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="cmp-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '30%' }}>指標</th>
+                    <th style={{ width: '35%' }}>{labelA}</th>
+                    <th style={{ width: '35%' }}>{labelB}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td className="metric">期望報酬率</td>
+                    <td className={`num red ${evAdv.a ? 'win' : ''}`}>{resultA.ev ? fmtPct(resultA.ev.ev) : '—'}</td>
+                    <td className={`num red ${evAdv.b ? 'win' : ''}`}>{resultB.ev ? fmtPct(resultB.ev.ev) : '—'}</td>
+                  </tr>
+                  <tr>
+                    <td className="metric">勝率</td>
+                    <td className={`num ${winAdv.a ? 'win' : ''}`}>{resultA.ev ? fmtWinRate(resultA.ev.winRate) : '—'}</td>
+                    <td className={`num ${winAdv.b ? 'win' : ''}`}>{resultB.ev ? fmtWinRate(resultB.ev.winRate) : '—'}</td>
+                  </tr>
+                  <tr>
+                    <td className="metric">實際損益比</td>
+                    <td className={`num ${oddsAdv.a ? 'win' : ''}`}>{resultA.ev ? fmtRatio(resultA.ev.actualOdds) : '—'}</td>
+                    <td className={`num ${oddsAdv.b ? 'win' : ''}`}>{resultB.ev ? fmtRatio(resultB.ev.actualOdds) : '—'}</td>
+                  </tr>
+                  <tr>
+                    <td className="metric">
+                      95% 下行虧損（虧損少者優）
+                      {(resultA.freqLabel || resultB.freqLabel) && (
+                        <><br /><span className="text-caption text-faint font-normal">A:{resultA.freqLabel || '—'} / B:{resultB.freqLabel || '—'}</span></>
+                      )}
+                    </td>
+                    <td className={`num grn ${var95Adv.a ? 'win' : ''}`}>{resultA.var ? fmtPct(resultA.var.var95) : '—'}</td>
+                    <td className={`num grn ${var95Adv.b ? 'win' : ''}`}>{resultB.var ? fmtPct(resultB.var.var95) : '—'}</td>
+                  </tr>
+                  <tr>
+                    <td className="metric">99% 下行虧損（虧損少者優）</td>
+                    <td className={`num grn ${var99Adv.a ? 'win' : ''}`}>{resultA.var ? fmtPct(resultA.var.var99) : '—'}</td>
+                    <td className={`num grn ${var99Adv.b ? 'win' : ''}`}>{resultB.var ? fmtPct(resultB.var.var99) : '—'}</td>
+                  </tr>
+                  <tr>
+                    <td className="metric">趨勢強度 H</td>
+                    <td className={`num ${hurstAdv.a ? 'win' : ''}`}>
+                      {resultA.hurst ? fmtRatio(resultA.hurst.h) : '—'}
+                      {resultA.hurst && <><br /><span className="text-caption text-dim font-normal">{resultA.hurst.interpretation}</span></>}
+                    </td>
+                    <td className={`num ${hurstAdv.b ? 'win' : ''}`}>
+                      {resultB.hurst ? fmtRatio(resultB.hurst.h) : '—'}
+                      {resultB.hurst && <><br /><span className="text-caption text-dim font-normal">{resultB.hurst.interpretation}</span></>}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="metric">象限評級</td>
+                    <td className="text-caption" style={{ color: 'var(--color-dim)' }}>{resultA.ev?.quadrant ?? '—'}</td>
+                    <td className="text-caption" style={{ color: 'var(--color-dim)' }}>{resultB.ev?.quadrant ?? '—'}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
     </div>
   )
