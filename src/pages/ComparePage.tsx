@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import StockSelector from '../components/StockSelector'
-import { calcEV, type EVResult } from '../lib/ev'
+import { calcMultiScaleEV, type EVResult } from '../lib/ev'
 import { calcVaR, type VaRResult } from '../lib/var'
 import { calcHurst, type HurstResult } from '../lib/hurst'
 import { fetchMonthlyReturns, fetchDailyReturns } from '../lib/api'
@@ -12,6 +12,8 @@ import { fmtPct, fmtWinRate, fmtRatio } from '../utils/format'
 
 interface StockResult {
   ev: EVResult | null
+  /** EV 計算的時間尺度標籤（如「最近 1 年」/「最近 3 個月」/「最近 5 年」）*/
+  evScaleLabel: string | null
   var: VaRResult | null
   hurst: HurstResult | null
   freqLabel: string
@@ -19,7 +21,13 @@ interface StockResult {
 
 function calcResult(stock: CompareStock): StockResult {
   const { monthlyReturns, dailyReturns } = stock
-  if (monthlyReturns.length < 10) return { ev: null, var: null, hurst: null, freqLabel: '' }
+  if (monthlyReturns.length < 10) {
+    return { ev: null, evScaleLabel: null, var: null, hurst: null, freqLabel: '' }
+  }
+
+  // 多尺度 EV — 取 medium > short > long fallback（與個股頁主判斷一致）
+  const multi = calcMultiScaleEV(monthlyReturns, dailyReturns)
+  const primary = multi?.medium ?? multi?.short ?? multi?.long ?? null
 
   const useDaily = dailyReturns.length >= 252
   const returnsForRisk = useDaily ? dailyReturns : monthlyReturns
@@ -28,7 +36,8 @@ function calcResult(stock: CompareStock): StockResult {
     : `月頻 ${monthlyReturns.length} 筆`
 
   return {
-    ev: calcEV(monthlyReturns),
+    ev: primary?.ev ?? null,
+    evScaleLabel: primary?.label ?? null,
     var: calcVaR(returnsForRisk),
     hurst: calcHurst(returnsForRisk),
     freqLabel,
@@ -175,6 +184,13 @@ export default function ComparePage() {
   const verdictName = winsA > winsB ? labelA : winsB > winsA ? labelB : '平手'
   const hasVerdict = winsA !== winsB
 
+  // 期望報酬率資料尺度 — A / B 不同時雙標
+  const evScaleDisplay =
+    resultA.evScaleLabel && resultB.evScaleLabel && resultA.evScaleLabel !== resultB.evScaleLabel
+      ? `${resultA.evScaleLabel}（A）/ ${resultB.evScaleLabel}（B）`
+      : resultA.evScaleLabel ?? resultB.evScaleLabel ?? '—'
+  const verdictScaleLabel = resultA.evScaleLabel ?? resultB.evScaleLabel ?? '—'
+
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between">
@@ -253,7 +269,7 @@ export default function ComparePage() {
             </div>
             <p className="text-[18px] font-bold text-main">整體推薦</p>
             <p className="text-[11px] text-dim mb-3">
-              6 項指標統計（期望報酬率 / 勝率 / 損益比 / 95% / 99% / 趨勢強度）
+              6 項指標統計 · 基於 <span className="font-semibold text-main">{verdictScaleLabel}</span> 表現
             </p>
             <p className={`font-serif text-[36px] font-bold leading-none ${hasVerdict ? 'text-red-700' : 'text-dim'}`}>
               {verdictName}
@@ -267,8 +283,13 @@ export default function ComparePage() {
 
           {/* 3. 比較表（cmp-table 樣式） */}
           <div className="bg-surface rounded-2xl border border-base overflow-hidden">
-            <div className="px-4 py-3 border-b border-base bg-elevated">
+            <div className="px-4 py-3 border-b border-base bg-elevated space-y-1">
               <p className="text-small text-faint">🟢 綠色背景 = 該項目較佳</p>
+              <p className="text-[11px] text-dim">
+                <span className="font-semibold text-main">資料尺度</span> ·
+                {' '}期望報酬率 / 勝率 / 損益比：<span className="font-semibold">{evScaleDisplay}</span>
+                {' '}· 下行虧損 / 趨勢強度：<span className="font-semibold">A {resultA.freqLabel || '—'} / B {resultB.freqLabel || '—'}</span>
+              </p>
             </div>
             <div className="overflow-x-auto">
               <table className="cmp-table">
