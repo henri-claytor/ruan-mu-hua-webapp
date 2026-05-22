@@ -17,17 +17,36 @@ interface StockResult {
   var: VaRResult | null
   hurst: HurstResult | null
   freqLabel: string
+  /** 近期動能 — 最近 60 個交易日累積報酬（複利） */
+  recentReturn: number | null
+  /** 近期動能 — short scale 勝率 */
+  recentWinRate: number | null
+  /** 近期動能 — short scale 損益比 */
+  recentPayoff: number | null
+}
+
+/** 累積報酬（複利）：(1+r1) × (1+r2) × ... − 1 */
+function calcCumulativeReturn(returns: number[]): number {
+  if (returns.length === 0) return 0
+  return returns.reduce((acc, r) => acc * (1 + r), 1) - 1
 }
 
 function calcResult(stock: CompareStock): StockResult {
   const { monthlyReturns, dailyReturns } = stock
-  if (monthlyReturns.length < 10) {
-    return { ev: null, evScaleLabel: null, var: null, hurst: null, freqLabel: '' }
+  const emptyResult: StockResult = {
+    ev: null, evScaleLabel: null, var: null, hurst: null, freqLabel: '',
+    recentReturn: null, recentWinRate: null, recentPayoff: null,
   }
+  if (monthlyReturns.length < 10) return emptyResult
 
-  // 多尺度 EV — 取 medium > short > long fallback（與個股頁主判斷一致）
+  // 多尺度 EV — primary 取 medium > short > long fallback（與個股頁主判斷一致）
   const multi = calcMultiScaleEV(monthlyReturns, dailyReturns)
   const primary = multi?.medium ?? multi?.short ?? multi?.long ?? null
+
+  // 近期動能 — 取 short scale EV + 60 日累積報酬
+  const recent60 = dailyReturns.slice(-60)
+  const recentReturn = recent60.length >= 20 ? calcCumulativeReturn(recent60) : null
+  const shortEv = multi?.short?.ev ?? null
 
   const useDaily = dailyReturns.length >= 252
   const returnsForRisk = useDaily ? dailyReturns : monthlyReturns
@@ -41,6 +60,9 @@ function calcResult(stock: CompareStock): StockResult {
     var: calcVaR(returnsForRisk),
     hurst: calcHurst(returnsForRisk),
     freqLabel,
+    recentReturn,
+    recentWinRate: shortEv?.winRate ?? null,
+    recentPayoff: shortEv?.actualOdds ?? null,
   }
 }
 
@@ -150,10 +172,8 @@ export default function ComparePage() {
     ? '重新比較'
     : '開始比較'
 
-  // 各指標勝出
+  // 長期穩定 advantage（4 項）
   const evAdv = advantage(resultA.ev?.ev ?? null, resultB.ev?.ev ?? null, 'higher')
-  const winAdv = advantage(resultA.ev?.winRate ?? null, resultB.ev?.winRate ?? null, 'higher')
-  const oddsAdv = advantage(resultA.ev?.actualOdds ?? null, resultB.ev?.actualOdds ?? null, 'higher')
   const var95Adv = advantage(
     resultA.var ? Math.abs(resultA.var.var95) : null,
     resultB.var ? Math.abs(resultB.var.var95) : null,
@@ -177,19 +197,29 @@ export default function ComparePage() {
     ? `${compareB.stockCode} ${compareB.name}`
     : '股票 B'
 
-  // 綜合勝出方統計
-  const winsA = [evAdv.a, winAdv.a, oddsAdv.a, var95Adv.a, var99Adv.a, hurstAdv.a].filter(Boolean).length
-  const winsB = [evAdv.b, winAdv.b, oddsAdv.b, var95Adv.b, var99Adv.b, hurstAdv.b].filter(Boolean).length
-  const ties = 6 - winsA - winsB
-  const verdictName = winsA > winsB ? labelA : winsB > winsA ? labelB : '平手'
-  const hasVerdict = winsA !== winsB
+  // 近期動能 advantage（3 項）
+  const recentReturnAdv = advantage(resultA.recentReturn, resultB.recentReturn, 'higher')
+  const recentWinAdv = advantage(resultA.recentWinRate, resultB.recentWinRate, 'higher')
+  const recentPayoffAdv = advantage(resultA.recentPayoff, resultB.recentPayoff, 'higher')
+
+  // 雙推薦勝出方統計
+  const shortWinsA = [recentReturnAdv.a, recentWinAdv.a, recentPayoffAdv.a].filter(Boolean).length
+  const shortWinsB = [recentReturnAdv.b, recentWinAdv.b, recentPayoffAdv.b].filter(Boolean).length
+  const shortTies = 3 - shortWinsA - shortWinsB
+  const shortVerdictName = shortWinsA > shortWinsB ? labelA : shortWinsB > shortWinsA ? labelB : '平手'
+  const shortHasVerdict = shortWinsA !== shortWinsB
+
+  const longWinsA = [evAdv.a, var95Adv.a, var99Adv.a, hurstAdv.a].filter(Boolean).length
+  const longWinsB = [evAdv.b, var95Adv.b, var99Adv.b, hurstAdv.b].filter(Boolean).length
+  const longTies = 4 - longWinsA - longWinsB
+  const longVerdictName = longWinsA > longWinsB ? labelA : longWinsB > longWinsA ? labelB : '平手'
+  const longHasVerdict = longWinsA !== longWinsB
 
   // 期望報酬率資料尺度 — A / B 不同時雙標
   const evScaleDisplay =
     resultA.evScaleLabel && resultB.evScaleLabel && resultA.evScaleLabel !== resultB.evScaleLabel
       ? `${resultA.evScaleLabel}（A）/ ${resultB.evScaleLabel}（B）`
       : resultA.evScaleLabel ?? resultB.evScaleLabel ?? '—'
-  const verdictScaleLabel = resultA.evScaleLabel ?? resultB.evScaleLabel ?? '—'
 
   return (
     <div className="space-y-5">
@@ -262,23 +292,41 @@ export default function ComparePage() {
             })}
           />
 
-          {/* 2. 綜合勝出方主判斷卡 */}
-          <div className="relative bg-[#f4ead8] border-2 border-[#c9a84c] rounded-lg px-6 py-5">
-            <div className="absolute top-2.5 right-3.5">
-              <span className="text-[10.5px] bg-gold-dark text-white px-2 py-0.5 rounded-full font-semibold">綜合勝出方</span>
+          {/* 2. 雙推薦卡（短線主判斷 + 長線次要） */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* 短線推薦 — 金邊主判斷 */}
+            <div className="relative bg-[#f4ead8] border-2 border-[#c9a84c] rounded-lg px-6 py-5">
+              <div className="absolute top-2.5 right-3.5">
+                <span className="text-[10.5px] bg-gold-dark text-white px-2 py-0.5 rounded-full font-semibold">🏆 主判斷</span>
+              </div>
+              <p className="text-[18px] font-bold text-main">短線推薦</p>
+              <p className="text-[11px] text-dim mb-3">基於近期動能 3 項統計（最近 3 個月）</p>
+              <p className={`font-serif text-[40px] font-bold leading-none ${shortHasVerdict ? 'text-red-700' : 'text-dim'}`}>
+                {shortVerdictName}
+              </p>
+              <p className="text-[11.5px] text-dim mt-3">
+                {labelA} 勝 <span className="num font-semibold">{shortWinsA}</span> ·
+                {' '}{labelB} 勝 <span className="num font-semibold">{shortWinsB}</span> ·
+                {' '}平手 <span className="num font-semibold">{shortTies}</span>
+              </p>
             </div>
-            <p className="text-[18px] font-bold text-main">整體推薦</p>
-            <p className="text-[11px] text-dim mb-3">
-              6 項指標統計 · 基於 <span className="font-semibold text-main">{verdictScaleLabel}</span> 表現
-            </p>
-            <p className={`font-serif text-[36px] font-bold leading-none ${hasVerdict ? 'text-red-700' : 'text-dim'}`}>
-              {verdictName}
-            </p>
-            <p className="text-[11.5px] text-dim mt-3">
-              {labelA} 勝 <span className="num font-semibold">{winsA}</span> 項 ·
-              {' '}{labelB} 勝 <span className="num font-semibold">{winsB}</span> 項 ·
-              {' '}平手 <span className="num font-semibold">{ties}</span> 項
-            </p>
+
+            {/* 長線推薦 — 普通卡 */}
+            <div className="bg-card2 border border-base rounded-lg px-6 py-5">
+              <div className="absolute right-3.5" style={{ position: 'relative', height: 0 }}>
+                <span className="text-[10.5px] bg-elevated text-dim px-2 py-0.5 rounded-full font-semibold" style={{ position: 'absolute', right: 0, top: '-4px' }}>長線參考</span>
+              </div>
+              <p className="text-[18px] font-bold text-main">長線推薦</p>
+              <p className="text-[11px] text-dim mb-3">基於長期穩定 4 項統計（最近 1 年）</p>
+              <p className={`font-serif text-[28px] font-bold leading-none ${longHasVerdict ? 'text-red-700' : 'text-dim'}`}>
+                {longVerdictName}
+              </p>
+              <p className="text-[11.5px] text-dim mt-3">
+                {labelA} 勝 <span className="num font-semibold">{longWinsA}</span> ·
+                {' '}{labelB} 勝 <span className="num font-semibold">{longWinsB}</span> ·
+                {' '}平手 <span className="num font-semibold">{longTies}</span>
+              </p>
+            </div>
           </div>
 
           {/* 3. 比較表（cmp-table 樣式） */}
@@ -301,20 +349,50 @@ export default function ComparePage() {
                   </tr>
                 </thead>
                 <tbody>
+                  {/* ─── 近期動能段（最近 3 個月 · 60 日） ─── */}
                   <tr>
-                    <td className="metric">期望報酬率</td>
+                    <td colSpan={3} className="bg-elevated font-semibold text-main" style={{ padding: '10px 14px', fontSize: '12.5px' }}>
+                      📈 近期動能（最近 3 個月 · 60 日）
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="metric">近期累積報酬</td>
+                    <td className={`num red ${recentReturnAdv.a ? 'win' : ''}`}>
+                      {resultA.recentReturn !== null ? fmtPct(resultA.recentReturn) : '—'}
+                    </td>
+                    <td className={`num red ${recentReturnAdv.b ? 'win' : ''}`}>
+                      {resultB.recentReturn !== null ? fmtPct(resultB.recentReturn) : '—'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="metric">近期勝率</td>
+                    <td className={`num ${recentWinAdv.a ? 'win' : ''}`}>
+                      {resultA.recentWinRate !== null ? fmtWinRate(resultA.recentWinRate) : '—'}
+                    </td>
+                    <td className={`num ${recentWinAdv.b ? 'win' : ''}`}>
+                      {resultB.recentWinRate !== null ? fmtWinRate(resultB.recentWinRate) : '—'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="metric">近期損益比</td>
+                    <td className={`num ${recentPayoffAdv.a ? 'win' : ''}`}>
+                      {resultA.recentPayoff !== null ? fmtRatio(resultA.recentPayoff) : '—'}
+                    </td>
+                    <td className={`num ${recentPayoffAdv.b ? 'win' : ''}`}>
+                      {resultB.recentPayoff !== null ? fmtRatio(resultB.recentPayoff) : '—'}
+                    </td>
+                  </tr>
+
+                  {/* ─── 長期穩定段（最近 1 年 / 400 日） ─── */}
+                  <tr>
+                    <td colSpan={3} className="bg-elevated font-semibold text-main" style={{ padding: '10px 14px', fontSize: '12.5px' }}>
+                      📊 長期穩定（最近 1 年 / 400 日）
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="metric">年化期望報酬率</td>
                     <td className={`num red ${evAdv.a ? 'win' : ''}`}>{resultA.ev ? fmtPct(resultA.ev.ev) : '—'}</td>
                     <td className={`num red ${evAdv.b ? 'win' : ''}`}>{resultB.ev ? fmtPct(resultB.ev.ev) : '—'}</td>
-                  </tr>
-                  <tr>
-                    <td className="metric">勝率</td>
-                    <td className={`num ${winAdv.a ? 'win' : ''}`}>{resultA.ev ? fmtWinRate(resultA.ev.winRate) : '—'}</td>
-                    <td className={`num ${winAdv.b ? 'win' : ''}`}>{resultB.ev ? fmtWinRate(resultB.ev.winRate) : '—'}</td>
-                  </tr>
-                  <tr>
-                    <td className="metric">實際損益比</td>
-                    <td className={`num ${oddsAdv.a ? 'win' : ''}`}>{resultA.ev ? fmtRatio(resultA.ev.actualOdds) : '—'}</td>
-                    <td className={`num ${oddsAdv.b ? 'win' : ''}`}>{resultB.ev ? fmtRatio(resultB.ev.actualOdds) : '—'}</td>
                   </tr>
                   <tr>
                     <td className="metric">
@@ -341,11 +419,6 @@ export default function ComparePage() {
                       {resultB.hurst ? fmtRatio(resultB.hurst.h) : '—'}
                       {resultB.hurst && <><br /><span className="text-caption text-dim font-normal">{resultB.hurst.interpretation}</span></>}
                     </td>
-                  </tr>
-                  <tr>
-                    <td className="metric">象限評級</td>
-                    <td className="text-caption" style={{ color: 'var(--color-dim)' }}>{resultA.ev?.quadrant ?? '—'}</td>
-                    <td className="text-caption" style={{ color: 'var(--color-dim)' }}>{resultB.ev?.quadrant ?? '—'}</td>
                   </tr>
                 </tbody>
               </table>
