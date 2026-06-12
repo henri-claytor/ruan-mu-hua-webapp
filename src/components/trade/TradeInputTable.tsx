@@ -9,8 +9,8 @@ interface Draft {
   stockId: string
   buyDate: string
   sellDate: string
-  buyPrice: string
-  sellPrice: string
+  buyAmount: string
+  sellAmount: string
   shares: string
 }
 
@@ -20,8 +20,8 @@ const emptyDraft = (): Draft => ({
   stockId: '',
   buyDate: today(),
   sellDate: today(),
-  buyPrice: '',
-  sellPrice: '',
+  buyAmount: '',
+  sellAmount: '',
   shares: '',
 })
 
@@ -56,15 +56,15 @@ export default function TradeInputTable({ onAdd }: Props) {
       setError('賣出日期不可早於買入日期')
       return
     }
-    const bp = num(draft.buyPrice)
-    const sp = num(draft.sellPrice)
+    const ba = num(draft.buyAmount)
+    const sa = num(draft.sellAmount)
     const sh = num(draft.shares)
-    if (isNaN(bp) || bp <= 0) {
-      setError('買入價必須是大於 0 的數字')
+    if (isNaN(ba) || ba <= 0) {
+      setError('買入金額必須是大於 0 的數字')
       return
     }
-    if (isNaN(sp) || sp <= 0) {
-      setError('賣出價必須是大於 0 的數字')
+    if (isNaN(sa) || sa <= 0) {
+      setError('賣出金額必須是大於 0 的數字')
       return
     }
     if (isNaN(sh) || sh <= 0) {
@@ -72,10 +72,11 @@ export default function TradeInputTable({ onAdd }: Props) {
       return
     }
 
-    const buyAmount = Math.round(bp * sh)
-    const sellAmount = Math.round(sp * sh)
-    const pnl = sellAmount - buyAmount
-    const returnRate = buyAmount > 0 ? pnl / buyAmount : 0
+    const shares = Math.round(sh)
+    const buyPrice = ba / shares
+    const sellPrice = sa / shares
+    const pnl = sa - ba
+    const returnRate = ba > 0 ? pnl / ba : 0
 
     const trade: Trade = {
       id: makeId(),
@@ -83,11 +84,11 @@ export default function TradeInputTable({ onAdd }: Props) {
       stockName: draft.stockId.trim(),
       buyDate: draft.buyDate,
       sellDate: draft.sellDate,
-      buyPrice: bp,
-      sellPrice: sp,
-      shares: Math.round(sh),
-      buyAmount,
-      sellAmount,
+      buyPrice,
+      sellPrice,
+      shares,
+      buyAmount: ba,
+      sellAmount: sa,
       pnl,
       returnRate,
       note: undefined,
@@ -123,24 +124,24 @@ export default function TradeInputTable({ onAdd }: Props) {
             onChange={(e) => update('sellDate', e.target.value)}
           />
         </Field>
-        <Field label="買入價" required>
+        <Field label="買入金額" required>
           <input
             type="number"
-            step="0.01"
+            step="1"
             className="input-style"
-            value={draft.buyPrice}
-            onChange={(e) => update('buyPrice', e.target.value)}
-            placeholder="100"
+            value={draft.buyAmount}
+            onChange={(e) => update('buyAmount', e.target.value)}
+            placeholder="85000"
           />
         </Field>
-        <Field label="賣出價" required>
+        <Field label="賣出金額" required>
           <input
             type="number"
-            step="0.01"
+            step="1"
             className="input-style"
-            value={draft.sellPrice}
-            onChange={(e) => update('sellPrice', e.target.value)}
-            placeholder="110"
+            value={draft.sellAmount}
+            onChange={(e) => update('sellAmount', e.target.value)}
+            placeholder="88000"
           />
         </Field>
         <Field label="股數" required>
@@ -166,7 +167,8 @@ export default function TradeInputTable({ onAdd }: Props) {
       )}
 
       <p className="text-caption text-faint">
-        金額、損益、報酬率將自動計算（買入價×股數）。如需含手續費等精確數據，可在下方「原始交易表格」編輯。
+        請填入<span className="font-semibold text-dim">含手續費、證交稅後</span>的實際金額（對應券商對帳單）。
+        損益 = 賣出金額 − 買入金額；平均成交價由金額/股數自動推算。
       </p>
 
       <style>{`.input-style { display: block; width: 100%; padding: 0.4rem 0.6rem; border: 1px solid var(--color-base); border-radius: 0.5rem; font-size: 0.8125rem; background: var(--color-surface); }`}</style>
