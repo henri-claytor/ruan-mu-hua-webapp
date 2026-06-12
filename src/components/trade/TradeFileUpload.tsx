@@ -70,7 +70,7 @@ export default function TradeFileUpload({ onImport }: Props) {
         <div className="upload-txt">
           {isDragOver ? '放開以上傳' : '拖放 CSV 檔案到此處，或點擊選擇檔案'}
         </div>
-        <div className="upload-sub">通用格式 13 欄（stock_id, stock_name, buy_date, ...）</div>
+        <div className="upload-sub">必填 6 欄（stock_id, buy_date, sell_date, buy_amount, sell_amount, shares）· 進階可選填 stock_name / buy_price / sell_price / pnl / return_rate / note</div>
         <input
           ref={fileInputRef}
           type="file"

@@ -1,9 +1,13 @@
 /**
  * 交易紀錄 CSV 解析 / 格式化
  *
- * 通用格式 13 欄（與 Trade 介面對應）。第一行為 header。
- * 嚴格驗證：日期必須 YYYY-MM-DD、缺欄位即報錯。
+ * 必填欄位：6 個（stock_id, buy_date, sell_date, buy_amount, sell_amount, shares）
+ * 選填欄位：6 個（stock_name, buy_price, sell_price, pnl, return_rate, note）— 缺則自動推算
+ *
+ * 嚴格驗證：日期必須 YYYY-MM-DD、缺必填欄位即報錯。
  * 註解行（# 開頭）與空白行跳過。
+ *
+ * 向下相容：舊版 12 欄 CSV 仍可讀，提供值優先於推算。
  */
 
 import type { Trade } from './trade'
@@ -23,7 +27,14 @@ const HEADER = [
   'note',
 ]
 
-const REQUIRED_HEADER = HEADER.slice(0, -1) // note 為選填
+const REQUIRED_HEADER = [
+  'stock_id',
+  'buy_date',
+  'sell_date',
+  'buy_amount',
+  'sell_amount',
+  'shares',
+]
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
@@ -106,6 +117,11 @@ export function parseTradesCSV(text: string): ParseResult {
 
   // Build column index map
   const idx = (col: string) => headers.indexOf(col)
+  const has = (col: string) => idx(col) >= 0
+  const cellOpt = (cells: string[], col: string): string => {
+    const i = idx(col)
+    return i >= 0 ? (cells[i]?.trim() ?? '') : ''
+  }
 
   // Parse data rows
   for (let i = 1; i < lines.length; i++) {
@@ -117,10 +133,10 @@ export function parseTradesCSV(text: string): ParseResult {
     const cells = splitCSVLine(raw)
     const lineNo = i + 1
 
-    const stockId = cells[idx('stock_id')]?.trim() ?? ''
-    const stockName = cells[idx('stock_name')]?.trim() ?? ''
-    const buyDate = cells[idx('buy_date')]?.trim() ?? ''
-    const sellDate = cells[idx('sell_date')]?.trim() ?? ''
+    // ── 必填 ──
+    const stockId = cellOpt(cells, 'stock_id')
+    const buyDate = cellOpt(cells, 'buy_date')
+    const sellDate = cellOpt(cells, 'sell_date')
 
     if (!stockId) {
       errors.push(`第 ${lineNo} 行：stock_id 不可為空`)
@@ -139,25 +155,17 @@ export function parseTradesCSV(text: string): ParseResult {
       continue
     }
 
-    const buyPrice = parseNumber(cells[idx('buy_price')] ?? '')
-    const sellPrice = parseNumber(cells[idx('sell_price')] ?? '')
-    const shares = parseNumber(cells[idx('shares')] ?? '')
-    const buyAmount = parseNumber(cells[idx('buy_amount')] ?? '')
-    const sellAmount = parseNumber(cells[idx('sell_amount')] ?? '')
-    const pnl = parseNumber(cells[idx('pnl')] ?? '')
-    let returnRate = parseNumber(cells[idx('return_rate')] ?? '')
+    const buyAmount = parseNumber(cellOpt(cells, 'buy_amount'))
+    const sellAmount = parseNumber(cellOpt(cells, 'sell_amount'))
+    const shares = parseNumber(cellOpt(cells, 'shares'))
 
-    const numericChecks: { key: string; value: number }[] = [
-      { key: 'buy_price', value: buyPrice },
-      { key: 'sell_price', value: sellPrice },
-      { key: 'shares', value: shares },
+    const requiredNumChecks: { key: string; value: number }[] = [
       { key: 'buy_amount', value: buyAmount },
       { key: 'sell_amount', value: sellAmount },
-      { key: 'pnl', value: pnl },
-      { key: 'return_rate', value: returnRate },
+      { key: 'shares', value: shares },
     ]
     let badField: string | null = null
-    for (const c of numericChecks) {
+    for (const c of requiredNumChecks) {
       if (isNaN(c.value)) {
         badField = c.key
         break
@@ -168,14 +176,29 @@ export function parseTradesCSV(text: string): ParseResult {
       continue
     }
 
+    // ── 選填（有則用、無則推算） ──
+    const stockName = has('stock_name') && cellOpt(cells, 'stock_name')
+      ? cellOpt(cells, 'stock_name')
+      : stockId
+
+    let buyPrice = has('buy_price') ? parseNumber(cellOpt(cells, 'buy_price')) : NaN
+    if (isNaN(buyPrice)) buyPrice = shares > 0 ? buyAmount / shares : 0
+
+    let sellPrice = has('sell_price') ? parseNumber(cellOpt(cells, 'sell_price')) : NaN
+    if (isNaN(sellPrice)) sellPrice = shares > 0 ? sellAmount / shares : 0
+
+    let pnl = has('pnl') ? parseNumber(cellOpt(cells, 'pnl')) : NaN
+    if (isNaN(pnl)) pnl = sellAmount - buyAmount
+
+    let returnRate = has('return_rate') ? parseNumber(cellOpt(cells, 'return_rate')) : NaN
+    if (isNaN(returnRate)) returnRate = buyAmount > 0 ? pnl / buyAmount : 0
+
     // 報酬率自動偵測：> 1 視為百分比格式（如 24.03 → 0.2403）
     if (Math.abs(returnRate) > 1) {
       returnRate = returnRate / 100
     }
 
-    const noteIdx = idx('note')
-    const note =
-      noteIdx >= 0 && cells[noteIdx]?.trim() ? cells[noteIdx].trim() : undefined
+    const note = has('note') && cellOpt(cells, 'note') ? cellOpt(cells, 'note') : undefined
 
     trades.push({
       id: makeId(),
@@ -225,9 +248,9 @@ export function formatTradesCSV(trades: Trade[]): string {
   return lines.join('\n')
 }
 
-/** 範例 CSV（給空態下載連結使用）。 */
-export const EXAMPLE_CSV = `stock_id,stock_name,buy_date,sell_date,buy_price,sell_price,shares,buy_amount,sell_amount,pnl,return_rate,note
-2330,台積電,2025-03-15,2025-09-20,580.50,720.00,1000,580500,720000,139500,0.2403,獲利了結
-2317,鴻海,2025-04-01,2025-07-15,165.00,158.50,2000,330000,317000,-13000,-0.0394,停損出場
-0050,元大台灣50,2025-01-10,2026-01-10,135.00,148.20,3000,405000,444600,39600,0.0978,長線持有
+/** 範例 CSV（給空態下載連結使用）— 6 欄精簡版。 */
+export const EXAMPLE_CSV = `stock_id,buy_date,sell_date,buy_amount,sell_amount,shares
+2330,2025-03-15,2025-09-20,580500,720000,1000
+2317,2025-04-01,2025-07-15,330000,317000,2000
+0050,2025-01-10,2026-01-10,405000,444600,3000
 `
