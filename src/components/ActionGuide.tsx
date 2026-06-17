@@ -1,5 +1,5 @@
 /**
- * ActionGuide — 根據分析結果產生繁體中文建議行動列表
+ * ActionGuide — 根據分析結果產生繁體中文分析觀察列表
  *
  * 純 rule-based。所有訊號→訊息對應集中在這個檔案，方便調整。
  * 三個分析頁（個股/組合/比較）各有對應的 build* 函式。
@@ -34,16 +34,16 @@ export function buildIndividualGuide(s: IndividualSignals): string[] {
 
   // EV × Hurst 組合判讀（用短期 H）
   if (s.ev > 0 && s.hurstH !== null && s.hurstH > 0.6) {
-    items.push('EV 正值且短期趨勢持續（H > 0.6），可考慮建立或維持多頭倉位。')
+    items.push('EV 正值且短期趨勢持續（H > 0.6），統計上偏多方有利。')
   } else if (s.ev > 0) {
-    items.push('期望值為正，整體傾向有利，但仍需觀察趨勢強弱與部位控管。')
+    items.push('期望值為正，整體傾向有利，仍需觀察趨勢強弱與部位變化。')
   } else {
-    items.push('期望值為負，建議觀望或縮減現有部位。')
+    items.push('期望值為負，統計上偏不利，需更謹慎評估。')
   }
 
   // 風險等級
   if (s.varLevel === 'high') {
-    items.push('下行風險偏高（VaR95 超過 10%），建議控管單筆部位大小。')
+    items.push('下行風險偏高（VaR95 超過 10%），單筆波動較大。')
   } else if (s.varLevel === 'low') {
     items.push('下行風險偏低（VaR95 < 5%），波動可控。')
   }
@@ -51,7 +51,7 @@ export function buildIndividualGuide(s: IndividualSignals): string[] {
   // Hurst 解讀（用短期 H）
   if (s.hurstH !== null) {
     if (s.hurstH < 0.4) {
-      items.push('短期 Hurst < 0.4 顯示均值回歸傾向，不宜在高點追買。')
+      items.push('短期 Hurst < 0.4 顯示均值回歸傾向，高點延續性偏弱。')
     } else if (s.hurstH >= 0.4 && s.hurstH <= 0.55) {
       items.push('短期 Hurst 接近 0.5，價格走勢偏隨機，技術面參考度較低。')
     }
@@ -59,16 +59,16 @@ export function buildIndividualGuide(s: IndividualSignals): string[] {
 
   // Hurst Divergence 訊號（短期偏離長期）
   if (s.hurstDivergence === 'short-weakening') {
-    items.push('⚠ 短期 H 顯著低於長期，趨勢動能可能轉弱，注意停利停損。')
+    items.push('⚠ 短期 H 顯著低於長期，趨勢動能可能轉弱。')
   } else if (s.hurstDivergence === 'short-strengthening') {
-    items.push('⚠ 短期 H 顯著高於長期，動能轉強，可關注突破訊號。')
+    items.push('⚠ 短期 H 顯著高於長期，動能轉強，可留意突破訊號。')
   }
 
   // EV Divergence 訊號（短期年化 EV 偏離長期）
   if (s.evDivergence === 'short-deteriorating') {
-    items.push('⚠ 短期年化 EV 顯著低於長期，近期表現轉弱，注意停損。')
+    items.push('⚠ 短期年化 EV 顯著低於長期，近期表現轉弱。')
   } else if (s.evDivergence === 'short-improving') {
-    items.push('⚠ 短期年化 EV 顯著高於長期，近期動能轉強，可關注買進訊號。')
+    items.push('⚠ 短期年化 EV 顯著高於長期，近期動能轉強。')
   }
 
   return items
@@ -91,24 +91,24 @@ export function buildPortfolioGuide(s: PortfolioSignals): string[] {
   const items: string[] = []
 
   if (s.ev > 0) {
-    items.push('組合整體期望值為正，策略方向正確。')
+    items.push('組合整體期望值為正，統計方向偏正面。')
   } else {
-    items.push('組合整體期望值為負，建議檢視成分股權重或汰換低 EV 標的。')
+    items.push('組合整體期望值為負，可檢視成分股權重與低 EV 標的的分布。')
   }
 
   if (s.stockCount < 3) {
-    items.push('組合股數較少，可考慮增加持股以分散非系統性風險。')
+    items.push('組合股數較少，非系統性風險集中。')
   }
 
   if (s.varLevel === 'high') {
-    items.push('組合下行風險偏高，建議評估是否調降高波動股票比重。')
+    items.push('組合下行風險偏高，高波動股票權重較重。')
   }
 
   if (s.hurstH !== null) {
     if (s.hurstH > 0.6) {
-      items.push('組合呈現趨勢特性（H > 0.6），策略上可順勢操作。')
+      items.push('組合呈現趨勢特性（H > 0.6），統計上具順勢延續傾向。')
     } else if (s.hurstH < 0.4) {
-      items.push('組合偏均值回歸（H < 0.4），不適合追高追漲策略。')
+      items.push('組合偏均值回歸（H < 0.4），追高型策略的統計效果偏弱。')
     }
   }
 
@@ -151,14 +151,14 @@ export function buildCompareGuide(s: CompareSignals): string[] {
 
   // EV 對決
   if (evA < 0 && evB > 0) {
-    items.push(`${nameA} 期望值為負、${nameB} 為正，兩股方向相反，應謹慎評估。`)
+    items.push(`${nameA} 期望值為負、${nameB} 為正，兩股統計方向相反。`)
   } else if (evB < 0 && evA > 0) {
-    items.push(`${nameB} 期望值為負、${nameA} 為正，兩股方向相反，應謹慎評估。`)
+    items.push(`${nameB} 期望值為負、${nameA} 為正，兩股統計方向相反。`)
   } else if (Math.abs(evA - evB) > 0.005) {
     const winner = evA > evB ? nameA : nameB
-    items.push(`${winner} 期望值較高，若其他條件相近，可優先考慮。`)
+    items.push(`${winner} 期望值較高，在其他條件相近下統計上較佔優勢。`)
   } else {
-    items.push('兩股期望值相近，建議以風險與趨勢面進一步區分。')
+    items.push('兩股期望值相近，可由風險與趨勢面進一步區分。')
   }
 
   // VaR 對決（虧損少者優）
@@ -174,9 +174,9 @@ export function buildCompareGuide(s: CompareSignals): string[] {
   // Hurst 對決
   if (s.hurstA !== null && s.hurstB !== null) {
     if (s.hurstA > 0.55 && s.hurstB < 0.45) {
-      items.push(`${nameA} 偏趨勢、${nameB} 偏均值回歸，操作策略需差異化。`)
+      items.push(`${nameA} 偏趨勢、${nameB} 偏均值回歸，兩者統計特性差異明顯。`)
     } else if (s.hurstB > 0.55 && s.hurstA < 0.45) {
-      items.push(`${nameB} 偏趨勢、${nameA} 偏均值回歸，操作策略需差異化。`)
+      items.push(`${nameB} 偏趨勢、${nameA} 偏均值回歸，兩者統計特性差異明顯。`)
     }
   }
 
@@ -190,7 +190,9 @@ interface ActionGuideProps {
   title?: string
 }
 
-export default function ActionGuide({ items, title = '操作建議' }: ActionGuideProps) {
+import { WORDING, COMPLIANCE_FOOTER } from '../lib/wording'
+
+export default function ActionGuide({ items, title = WORDING.actionGuideTitle }: ActionGuideProps) {
   if (items.length === 0) return null
 
   return (
@@ -214,7 +216,7 @@ export default function ActionGuide({ items, title = '操作建議' }: ActionGui
         ))}
       </ul>
       <p className="text-faint text-[11px] pt-3 border-t border-[rgba(154,122,46,0.2)]">
-        以上為統計模型參考建議，非投資意見，不構成買賣依據。
+        ⚠ {COMPLIANCE_FOOTER}
       </p>
     </div>
   )

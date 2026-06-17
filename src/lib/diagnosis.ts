@@ -1,7 +1,7 @@
 /**
  * 績效診斷規則引擎
  *
- * 根據整體績效 + 個股統計，產生組合層級與個股層級的診斷建議。
+ * 根據整體績效 + 個股統計，產生組合層級與個股層級的診斷觀察。
  * 純函式，易測試、易擴充。
  */
 
@@ -84,7 +84,7 @@ function diagnoseAdvantages(performance: PortfolioPerformance): Diagnosis[] {
       scope: 'portfolio',
       title: '勝率極高',
       message: `勝率 ${(winRate * 100).toFixed(1)}% 顯示選股或進場時機掌握精準`,
-      advice: '留意是否依賴特定市況，建議測試不同行情下的表現',
+      advice: '留意是否依賴特定市況，可觀察不同行情下的表現',
     })
   }
 
@@ -155,7 +155,7 @@ function diagnosePortfolio(
         scope: 'portfolio',
         title: '集中度風險',
         message: `前 2 大標的（${top2[0].stockId}、${top2[1].stockId}）合計貢獻整體損益的 ${(sumContrib * 100).toFixed(1)}%`,
-        advice: '分散持股，強勢標的達目標後可部分減倉以降低單一標的依賴',
+        advice: '集中度偏高，單一標的對整體損益影響較大',
       })
     }
   }
@@ -172,7 +172,7 @@ function diagnosePortfolio(
         scope: 'portfolio',
         title: '停損紀律不足',
         message: `${allLossStocks.length} 檔全敗標的合計虧損 ${Math.abs(allLossSumPnl).toLocaleString()} 元，佔總損益絕對值 ${(ratio * 100).toFixed(1)}%`,
-        advice: '建立固定停損線機制（建議進場成本 −8% 至 −10%），達觸發點立即執行',
+        advice: '此狀況常見於缺乏固定停損機制，課程上會以 −8% 至 −10% 區間作為教學示例',
       })
     }
   }
@@ -185,7 +185,7 @@ function diagnosePortfolio(
       scope: 'portfolio',
       title: '獲利因子偏低',
       message: `獲利因子 ${performance.profitFactor.toFixed(2)} < 2.0，整體獲利相對虧損的倍數不足`,
-      advice: '全面檢視策略邏輯，優先改善損益比',
+      advice: '整體獲利相對虧損的倍數偏低，是策略檢視時的常見觀察點',
     })
   }
 
@@ -197,7 +197,7 @@ function diagnosePortfolio(
       scope: 'portfolio',
       title: '損益比偏低',
       message: `損益比 ${performance.payoffRatio.toFixed(2)} < 1.2，平均獲利幅度與虧損幅度相當`,
-      advice: '改善停損或獲利了結節奏，讓獲利筆的幅度顯著高於虧損筆',
+      advice: '平均獲利幅度未顯著超過平均虧損幅度，是停損與獲利了結節奏的觀察點',
     })
   }
 
@@ -213,7 +213,7 @@ function diagnosePortfolio(
         scope: 'portfolio',
         title: '交易頻率過高',
         message: `年均約 ${annualizedTrades.toFixed(0)} 筆交易，可能侵蝕報酬於交易成本`,
-        advice: '評估薄利多筆標的的交易成本侵蝕比例，集中於確信度高的進場時機',
+        advice: '高頻交易下，交易成本對淨報酬的影響需一併納入評估',
       })
     }
   }
@@ -226,7 +226,7 @@ function diagnosePortfolio(
       scope: 'portfolio',
       title: '樣本不足',
       message: `總交易筆數 ${performance.nTrades} 筆 < 30，統計可信度有限`,
-      advice: '現有統計僅供參考，建議累積更多交易後再做策略評估',
+      advice: '現有統計僅供參考，樣本累積越多統計可信度越高',
     })
   }
 
@@ -247,7 +247,7 @@ function diagnoseStock(s: StockStats): Diagnosis[] {
       stockId: s.stockId,
       title: '全敗多筆',
       message: `${s.stockName} 共 ${s.nTrades} 筆交易全數虧損`,
-      advice: '持續進場代表選股邏輯可能整體有誤，而非執行問題；考慮停止操作此標的',
+      advice: '多筆交易全敗，統計上反映選股邏輯本身可能存在偏差，而非單純執行問題',
     })
   } else if (s.winRate === 0 && s.nTrades === 2) {
     out.push({
@@ -257,7 +257,7 @@ function diagnoseStock(s: StockStats): Diagnosis[] {
       stockId: s.stockId,
       title: '連續虧損',
       message: `${s.stockName} 連續 2 筆交易全數虧損，疑似未執行停損`,
-      advice: '建議設定明確停損條件，達觸發點立即執行，不論後續判斷',
+      advice: '此狀況常與缺乏明確停損條件相關，是課程上常見的停損紀律教學案例',
     })
   }
 
@@ -270,7 +270,7 @@ function diagnoseStock(s: StockStats): Diagnosis[] {
       stockId: s.stockId,
       title: '打法品質偏低',
       message: `${s.stockName} 損益比 ${s.payoffRatio.toFixed(2)}，平均虧損幅度大於獲利`,
-      advice: '靠勝率撐場結構脆弱，重新評估進出場邏輯，或改為只在確信度高時才進場',
+      advice: '靠勝率撐場的結構統計上較脆弱，是進出場邏輯的觀察點',
     })
   }
 
@@ -283,7 +283,7 @@ function diagnoseStock(s: StockStats): Diagnosis[] {
       stockId: s.stockId,
       title: '資金管理問題',
       message: `${s.stockName} 損益比 ${isFinite(s.payoffRatio) ? s.payoffRatio.toFixed(2) : '∞'}（打法尚可），但獲利因子僅 ${s.profitFactor.toFixed(2)}`,
-      advice: '虧損筆部位明顯重於獲利筆，建議統一部位大小或縮減虧損筆倉位',
+      advice: '虧損筆部位明顯重於獲利筆，是資金管理一致性的觀察點',
     })
   }
 
@@ -296,7 +296,7 @@ function diagnoseStock(s: StockStats): Diagnosis[] {
       stockId: s.stockId,
       title: '集中度警示',
       message: `${s.stockName} 貢獻整體損益的 ${(s.pnlContribution * 100).toFixed(1)}%`,
-      advice: '組合集中度過高，建議設定單一標的損益貢獻上限（如 25%），達到後分批減倉',
+      advice: '單一標的對組合損益貢獻偏大，組合集中度為觀察重點',
     })
   }
 
@@ -309,7 +309,7 @@ function diagnoseStock(s: StockStats): Diagnosis[] {
       stockId: s.stockId,
       title: '樣本不足',
       message: `${s.stockName} 交易筆數僅 ${s.nTrades} 筆`,
-      advice: '建議累積更多樣本後再評估此標的',
+      advice: '樣本累積越多，此標的統計可信度越高',
     })
   }
 

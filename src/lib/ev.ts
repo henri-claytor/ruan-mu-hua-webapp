@@ -2,10 +2,10 @@ import { average } from './utils'
 import { calcPortfolioReturns } from './portfolio'
 
 export type Quadrant =
-  | '高賠率正期望值（最佳）'
+  | '高賠率正期望值（雙優）'
   | '低賠率正期望值（勝率驅動）'
   | '高賠率負期望值（賠率驅動但勝率不足）'
-  | '低賠率負期望值（避免）'
+  | '低賠率負期望值（較弱）'
 
 export interface EVResult {
   winRate: number      // 0–1
@@ -34,13 +34,13 @@ export function calcEV(returns: number[]): EVResult {
 
   let quadrant: Quadrant
   if (ev > 0 && actualOdds > breakEvenOdds) {
-    quadrant = '高賠率正期望值（最佳）'
+    quadrant = '高賠率正期望值（雙優）'
   } else if (ev > 0) {
     quadrant = '低賠率正期望值（勝率驅動）'
   } else if (actualOdds > breakEvenOdds) {
     quadrant = '高賠率負期望值（賠率驅動但勝率不足）'
   } else {
-    quadrant = '低賠率負期望值（避免）'
+    quadrant = '低賠率負期望值（較弱）'
   }
 
   return { winRate, lossRate, avgGain, avgLoss, ev, actualOdds, breakEvenOdds, quadrant }

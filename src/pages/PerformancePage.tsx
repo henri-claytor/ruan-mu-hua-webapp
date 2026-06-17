@@ -13,6 +13,7 @@ import RawTradeTable from '../components/trade/RawTradeTable'
 import TradeInputTable from '../components/trade/TradeInputTable'
 import TradeFileUpload from '../components/trade/TradeFileUpload'
 import ExportMenu from '../components/trade/ExportMenu'
+import ComplianceFooter from '../components/ComplianceFooter'
 
 type InputMode = 'manual' | 'csv'
 
@@ -166,7 +167,7 @@ export default function PerformancePage() {
         </div>
       )}
 
-      {/* 1. 重點建議（移到頂部 — 結論優先） */}
+      {/* 1. 重點觀察（移到頂部 — 結論優先） */}
       {hasTrades && recommendations.length > 0 && (
         <RecommendationPanel recommendations={recommendations} />
       )}
@@ -210,6 +211,8 @@ export default function PerformancePage() {
           <RawTradeTable trades={trades} onUpdate={updateTrade} onRemove={removeTrade} />
         </div>
       )}
+
+      {hasTrades && <ComplianceFooter />}
     </div>
   )
 }

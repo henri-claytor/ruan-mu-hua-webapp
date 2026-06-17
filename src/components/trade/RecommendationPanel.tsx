@@ -1,4 +1,5 @@
 import type { Recommendation } from '../../lib/recommendations'
+import { WORDING } from '../../lib/wording'
 
 interface Props {
   recommendations: Recommendation[]
@@ -13,8 +14,8 @@ export default function RecommendationPanel({ recommendations }: Props) {
       className="bg-surface rounded-2xl border border-base p-6 space-y-4"
     >
       <div>
-        <h2 className="font-serif text-h2 font-bold text-main tracking-wide">重點建議</h2>
-        <p className="text-caption text-faint mt-0.5">自動產生的具體行動建議</p>
+        <h2 className="font-serif text-h2 font-bold text-main tracking-wide">{WORDING.recommendationTitle}</h2>
+        <p className="text-caption text-faint mt-0.5">{WORDING.recommendationSub}</p>
       </div>
 
       <div className="space-y-3">

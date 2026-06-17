@@ -14,6 +14,7 @@ import { calcPortfolioReturns } from '../lib/portfolio'
 import { fetchMonthlyReturns, fetchDailyReturns } from '../lib/api'
 import { useAppStore, type Stock } from '../store/useAppStore'
 import ActionGuide, { buildPortfolioGuide, classifyVarLevel, type VarLevel } from '../components/ActionGuide'
+import ComplianceFooter from '../components/ComplianceFooter'
 import { fmtPct } from '../utils/format'
 import {
   buildPortfolioSummary,
@@ -405,7 +406,7 @@ export default function PortfolioPage() {
             </button>
           </div>
 
-          {/* 1. 操作建議（移到頂部 — 結論優先） */}
+          {/* 1. 分析觀察（移到頂部 — 結論優先） */}
           <ActionGuide
             items={buildPortfolioGuide({
               ev: evResult.ev,
@@ -472,6 +473,7 @@ export default function PortfolioPage() {
 
           {/* 7. 組合未來淨值模擬 */}
           <PortfolioMcBlock mcResult={mcResult} monthlyCount={portMonthly.length} />
+          <ComplianceFooter />
         </div>
       )}
     </div>

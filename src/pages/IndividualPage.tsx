@@ -13,6 +13,7 @@ import { calcMultiScaleHurst, type MultiScaleHurstResult } from '../lib/hurst'
 import { fetchMonthlyReturns, fetchDailyReturns } from '../lib/api'
 import { useAppStore } from '../store/useAppStore'
 import ActionGuide, { buildIndividualGuide, classifyVarLevel, type VarLevel } from '../components/ActionGuide'
+import ComplianceFooter from '../components/ComplianceFooter'
 import MyTradeHistoryBlock from '../components/trade/MyTradeHistoryBlock'
 import { fmtPct } from '../utils/format'
 import {
@@ -297,14 +298,14 @@ export default function IndividualPage() {
             </button>
           </div>
 
-          {/* 1. 操作建議（移到最上，使用者先看結論） */}
+          {/* 1. 分析觀察（移到最上，使用者先看結論） */}
           {(() => {
             const primary = results.evMulti?.medium ?? results.evMulti?.short ?? results.evMulti?.long ?? null
             return (
               <ActionGuide
                 items={buildIndividualGuide({
                   ev: primary?.ev.ev ?? 0,
-                  evQuadrant: primary?.ev.quadrant ?? '低賠率負期望值（避免）',
+                  evQuadrant: primary?.ev.quadrant ?? '低賠率負期望值（較弱）',
                   varLevel: classifyVarLevel(results.var.var95),
                   hurstH: results.hurst?.short.h ?? null,
                   hurstDivergence: results.hurst?.divergence,
@@ -357,6 +358,7 @@ export default function IndividualPage() {
             stockName={results.stockName}
             marketPayoff={(results.evMulti?.medium ?? results.evMulti?.short ?? results.evMulti?.long)?.ev.actualOdds ?? null}
           />
+          <ComplianceFooter />
         </div>
       )}
     </div>

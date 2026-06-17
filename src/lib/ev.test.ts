@@ -40,7 +40,7 @@ describe('calcEV', () => {
 
   it('assigns correct quadrant for positive EV with high odds', () => {
     const result = calcEV(testReturns)
-    expect(result.quadrant).toBe('高賠率正期望值（最佳）')
+    expect(result.quadrant).toBe('高賠率正期望值（雙優）')
   })
 
   it('assigns negative EV quadrant for all-loss data', () => {

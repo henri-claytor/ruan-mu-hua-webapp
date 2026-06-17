@@ -6,6 +6,8 @@ import { calcHurst, type HurstResult } from '../lib/hurst'
 import { fetchMonthlyReturns, fetchDailyReturns } from '../lib/api'
 import { useAppStore, type CompareStock } from '../store/useAppStore'
 import ActionGuide, { buildCompareGuide } from '../components/ActionGuide'
+import ComplianceFooter from '../components/ComplianceFooter'
+import { WORDING } from '../lib/wording'
 import { fmtPct, fmtWinRate, fmtRatio } from '../utils/format'
 
 // ── Derived results per stock ─────────────────────────────────────────────────
@@ -202,7 +204,7 @@ export default function ComparePage() {
   const recentWinAdv = advantage(resultA.recentWinRate, resultB.recentWinRate, 'higher')
   const recentPayoffAdv = advantage(resultA.recentPayoff, resultB.recentPayoff, 'higher')
 
-  // 雙推薦勝出方統計
+  // 短線 / 長線統計優勢勝出方
   const shortWinsA = [recentReturnAdv.a, recentWinAdv.a, recentPayoffAdv.a].filter(Boolean).length
   const shortWinsB = [recentReturnAdv.b, recentWinAdv.b, recentPayoffAdv.b].filter(Boolean).length
   const shortTies = 3 - shortWinsA - shortWinsB
@@ -278,7 +280,7 @@ export default function ComparePage() {
       {/* ─ 計算結果 ─ */}
       {computed && bothReady && resultA.ev && resultB.ev && (
         <>
-          {/* 1. 操作建議（金邊強化） */}
+          {/* 1. 分析觀察（金邊強化） */}
           <ActionGuide
             items={buildCompareGuide({
               evA: resultA.ev.ev,
@@ -292,14 +294,14 @@ export default function ComparePage() {
             })}
           />
 
-          {/* 2. 雙推薦卡（短線主判斷 + 長線次要） */}
+          {/* 2. 雙統計優勢卡（短線主判斷 + 長線次要） */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* 短線推薦 — 金邊主判斷 */}
+            {/* 短線統計優勢 — 金邊主判斷 */}
             <div className="relative bg-[#f4ead8] border-2 border-[#c9a84c] rounded-lg px-6 py-5">
               <div className="absolute top-2.5 right-3.5">
                 <span className="text-[10.5px] bg-gold-dark text-white px-2 py-0.5 rounded-full font-semibold">🏆 主判斷</span>
               </div>
-              <p className="text-[18px] font-bold text-main">短線推薦</p>
+              <p className="text-[18px] font-bold text-main">{WORDING.shortTermVerdict}</p>
               <p className="text-[11px] text-dim mb-3">基於近期動能 3 項統計（最近 3 個月）</p>
               <p className={`font-serif text-[40px] font-bold leading-none ${shortHasVerdict ? 'text-red-700' : 'text-dim'}`}>
                 {shortVerdictName}
@@ -311,12 +313,12 @@ export default function ComparePage() {
               </p>
             </div>
 
-            {/* 長線推薦 — 普通卡 */}
+            {/* 長線統計優勢 — 普通卡 */}
             <div className="bg-card2 border border-base rounded-lg px-6 py-5">
               <div className="absolute right-3.5" style={{ position: 'relative', height: 0 }}>
                 <span className="text-[10.5px] bg-elevated text-dim px-2 py-0.5 rounded-full font-semibold" style={{ position: 'absolute', right: 0, top: '-4px' }}>長線參考</span>
               </div>
-              <p className="text-[18px] font-bold text-main">長線推薦</p>
+              <p className="text-[18px] font-bold text-main">{WORDING.longTermVerdict}</p>
               <p className="text-[11px] text-dim mb-3">基於長期穩定 4 項統計（最近 1 年）</p>
               <p className={`font-serif text-[28px] font-bold leading-none ${longHasVerdict ? 'text-red-700' : 'text-dim'}`}>
                 {longVerdictName}
@@ -424,6 +426,7 @@ export default function ComparePage() {
               </table>
             </div>
           </div>
+          <ComplianceFooter />
         </>
       )}
     </div>

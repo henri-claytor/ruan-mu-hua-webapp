@@ -14,8 +14,8 @@ interface Props {
 function compareInsight(market: number, mine: number): string {
   const diff = mine - market
   if (Math.abs(diff) < 0.2) return '市場面與你的執行相當，無顯著差距。'
-  if (mine > market + 0.2) return '你比市場給的更好——進出場時機掌握優於平均。'
-  return '市場機會夠好，但你的進出場時機可能要改善。'
+  if (mine > market + 0.2) return '你的損益比優於市場平均，統計上進出場節奏較好。'
+  return '市場長期統計顯示機會存在，但你的進出場時機與市場節奏有落差。'
 }
 
 function fmtRatio(n: number): string {

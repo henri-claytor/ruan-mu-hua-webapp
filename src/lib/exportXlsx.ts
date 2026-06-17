@@ -1,6 +1,6 @@
 /**
  * 績效分析 Excel 匯出。
- * 4 個分頁：整體指標 / 個股統計 / 交易明細 / 診斷建議。
+ * 4 個分頁：整體指標 / 個股統計 / 交易明細 / 診斷觀察。
  *
  * 使用 dynamic import 載入 xlsx，避免初始 bundle 過大。
  */
@@ -8,6 +8,7 @@
 import type { Trade, PortfolioPerformance, StockStats } from './trade'
 import type { Diagnosis } from './diagnosis'
 import { daysBetween } from './trade'
+import { WORDING } from './wording'
 
 /** 安全格式化 ratio：Infinity 顯示為 '∞' */
 function fmtRatio(n: number): string {
@@ -100,13 +101,13 @@ export async function exportPerformanceXlsx(
   const ws3 = XLSX.utils.aoa_to_sheet([tradeHeader, ...tradeRows])
   XLSX.utils.book_append_sheet(wb, ws3, '交易明細')
 
-  // ── Sheet 4：診斷建議 ─────────────────────────────────────────────────────
+  // ── Sheet 4：診斷觀察 ─────────────────────────────────────────────────────
   const diagHeader = ['id', 'level', 'scope', 'stockId', 'title', 'message', 'advice']
   const diagRows = diagnoses.map((d) => [
     d.id, d.level, d.scope, d.stockId ?? '', d.title, d.message, d.advice,
   ])
   const ws4 = XLSX.utils.aoa_to_sheet([diagHeader, ...diagRows])
-  XLSX.utils.book_append_sheet(wb, ws4, '診斷建議')
+  XLSX.utils.book_append_sheet(wb, ws4, WORDING.excelDiagSheet)
 
   // 寫檔
   XLSX.writeFile(wb, filename)

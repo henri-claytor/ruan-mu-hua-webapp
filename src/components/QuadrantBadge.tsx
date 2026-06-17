@@ -10,19 +10,19 @@ interface QuadrantStyle {
 }
 
 const evQuadrantStyle: Record<Quadrant, QuadrantStyle> = {
-  // 紅漲綠跌：最佳評級用紅，避免操作用綠
-  '高賠率正期望值（最佳）':           { bg: 'bg-red-50',   text: 'text-red-700',   border: 'border-red-300',   Icon: Icon.Trophy },
+  // 紅漲綠跌：雙優評級用紅、較弱用綠
+  '高賠率正期望值（雙優）':           { bg: 'bg-red-50',   text: 'text-red-700',   border: 'border-red-300',   Icon: Icon.Trophy },
   '低賠率正期望值（勝率驅動）':       { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-300', Icon: Icon.Check  },
   '高賠率負期望值（賠率驅動但勝率不足）': { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-300', Icon: Icon.Alert },
-  '低賠率負期望值（避免）':           { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-300', Icon: Icon.Ban    },
+  '低賠率負期望值（較弱）':           { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-300', Icon: Icon.Ban    },
 }
 
 /** large 模式下顯示「兩行標題 + 副標」拆解 */
 const evQuadrantLarge: Record<Quadrant, { line1: string; line2: string; sub: string }> = {
-  '高賠率正期望值（最佳）':           { line1: '高賠率',     line2: '正期望值',     sub: '最佳評級' },
+  '高賠率正期望值（雙優）':           { line1: '高賠率',     line2: '正期望值',     sub: '雙優評級' },
   '低賠率正期望值（勝率驅動）':       { line1: '低賠率',     line2: '正期望值',     sub: '勝率驅動' },
   '高賠率負期望值（賠率驅動但勝率不足）': { line1: '高賠率',     line2: '負期望值',     sub: '勝率不足' },
-  '低賠率負期望值（避免）':           { line1: '低賠率',     line2: '負期望值',     sub: '避免操作' },
+  '低賠率負期望值（較弱）':           { line1: '低賠率',     line2: '負期望值',     sub: '統計較弱' },
 }
 
 const performanceQuadrantStyle: Record<PerformanceQuadrant, QuadrantStyle> = {

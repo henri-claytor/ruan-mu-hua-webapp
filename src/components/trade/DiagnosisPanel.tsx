@@ -1,4 +1,5 @@
 import type { Diagnosis, DiagnosisLevel } from '../../lib/diagnosis'
+import { WORDING } from '../../lib/wording'
 
 interface Props {
   diagnoses: Diagnosis[]
@@ -88,7 +89,7 @@ export default function DiagnosisPanel({ diagnoses }: Props) {
   return (
     <div className="bg-surface rounded-2xl border border-base p-6 space-y-4">
       <div>
-        <h2 className="font-serif text-h2 font-bold text-main tracking-wide">自動診斷與建議</h2>
+        <h2 className="font-serif text-h2 font-bold text-main tracking-wide">{WORDING.diagnosisTitle}</h2>
         <p className="text-caption text-faint mt-0.5">
           找到 {portfolioDiagnoses.length} 條觀察項目
           {counts.advantage > 0 && <span className="text-green-700 ml-1">· {counts.advantage} 優勢</span>}

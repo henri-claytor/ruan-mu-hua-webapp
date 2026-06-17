@@ -1,8 +1,8 @@
 /**
- * 重點建議產生器
+ * 重點觀察產生器
  *
- * 將 diagnoses 中具行動性的條目聚合為編號式重點建議，
- * 對應 PDF 報告的「重點建議」區塊。
+ * 將 diagnoses 中具行動性的條目聚合為編號式重點觀察，
+ * 對應 PDF 報告的「重點觀察」區塊。
  */
 
 import type { Diagnosis } from './diagnosis'
@@ -37,8 +37,8 @@ export function buildRecommendations(
     const namePart = names ? `${names} 是最明顯的停損問題標的。` : ''
     recs.push({
       id: 'rec-stop-loss',
-      title: '強化停損紀律',
-      body: `${namePart}建議設定固定停損線（如進場成本 −8%），達到即出場，避免重複加碼虧損部位。`,
+      title: '停損紀律觀察',
+      body: `${namePart}全敗多筆的標的，統計上常與缺乏固定停損機制有關，是課程上停損紀律的常見教學案例。`,
       priority: 1,
       scope: 'portfolio',
     })
@@ -55,8 +55,8 @@ export function buildRecommendations(
       : '?'
     recs.push({
       id: `rec-low-payoff-${stock.stockId}`,
-      title: `改善 ${stock.stockName} 操作方式`,
-      body: `${stock.stockName} 損益比 ${payoff} 代表打法本身有問題——平均虧損幅度是獲利的 ${ratio} 倍。若要繼續操作此標的，需調整進出場策略，或縮小部位以控制整體風險。`,
+      title: `${stock.stockName} 打法品質觀察`,
+      body: `${stock.stockName} 損益比 ${payoff} 顯示平均虧損幅度是獲利的 ${ratio} 倍，是打法品質與進出場策略的觀察點。`,
       priority: 2,
       scope: 'specific-stock',
       stockId: stock.stockId,
@@ -72,8 +72,8 @@ export function buildRecommendations(
     const pf = isFinite(stock.profitFactor) ? stock.profitFactor.toFixed(2) : '∞'
     recs.push({
       id: `rec-money-mgmt-${stock.stockId}`,
-      title: `檢討 ${stock.stockName} 押注管理`,
-      body: `${stock.stockName} 是「邏輯對但執行錯」的典型案例。損益比 ${payoff} 顯示打法尚可，但獲利因子 ${pf} 代表虧損筆部位遠大於獲利筆，屬資金管理問題。`,
+      title: `${stock.stockName} 押注管理觀察`,
+      body: `${stock.stockName} 屬「邏輯尚可、押注不一致」的統計樣態。損益比 ${payoff} 顯示打法尚可，獲利因子 ${pf} 顯示虧損筆部位明顯重於獲利筆，是資金管理一致性的觀察點。`,
       priority: 3,
       scope: 'specific-stock',
       stockId: stock.stockId,
@@ -89,8 +89,8 @@ export function buildRecommendations(
       const sumPct = (Math.abs(top2[0].pnlContribution) + Math.abs(top2[1].pnlContribution)) * 100
       recs.push({
         id: 'rec-concentration',
-        title: '降低組合集中度',
-        body: `前兩大標的（${top2[0].stockName}、${top2[1].stockName}）貢獻近 ${sumPct.toFixed(1)}% 獲利。可考慮在強勢標的達到目標報酬後分批減倉，將資金分散至其他高勝率標的。`,
+        title: '組合集中度觀察',
+        body: `前兩大標的（${top2[0].stockName}、${top2[1].stockName}）合計貢獻近 ${sumPct.toFixed(1)}% 獲利，組合集中度為觀察重點。`,
         priority: 4,
         scope: 'portfolio',
       })
@@ -100,8 +100,8 @@ export function buildRecommendations(
   // 9. 追蹤更多績效指標（priority 9，固定條目）
   recs.push({
     id: 'rec-track-more-metrics',
-    title: '追蹤更多績效指標',
-    body: '建議補充：分產業別分析、加碼行為分析、星期別勝率統計，讓評估更完整。',
+    title: '可追蹤更多績效指標',
+    body: '可補充：分產業別分析、加倉行為分析、星期別勝率統計，讓統計觀察更完整。',
     priority: 9,
     scope: 'portfolio',
   })
