@@ -61,13 +61,11 @@ export default function PerformancePage() {
   }
 
   const PDF_SECTION_IDS = [
-    'performance-banner',
-    'performance-recommendations',
-    'performance-diagnosis',
+    'performance-report-header',
     'performance-dashboard',
     'performance-matrix',
-    'performance-charts',
-    'performance-trades',
+    'performance-recommendations',
+    'performance-compliance-footer',
   ]
 
   return (

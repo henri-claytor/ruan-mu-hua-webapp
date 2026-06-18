@@ -62,7 +62,7 @@ export default function ExportMenu({ trades, performance, stocks, diagnoses, pdf
       const { exportPerformancePdf } = await import('../../lib/exportPdf')
       await exportPerformancePdf(
         pdfSectionIds.map((id) => ({ elementId: id, title: PDF_SECTION_LABEL[id] })),
-        `performance-report-${today()}.pdf`,
+        `投資績效分析報告_${today()}.pdf`,
       )
     } catch (err) {
       setError(`PDF 匯出失敗：${String(err)}`)

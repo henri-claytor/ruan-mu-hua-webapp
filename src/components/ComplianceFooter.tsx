@@ -7,7 +7,7 @@ import { COMPLIANCE_FOOTER } from '../lib/wording'
  */
 export default function ComplianceFooter() {
   return (
-    <div className="text-caption text-faint border-t border-base pt-3 mt-4 leading-relaxed">
+    <div id="performance-compliance-footer" className="text-caption text-faint border-t border-base pt-3 mt-4 leading-relaxed">
       ⚠ {COMPLIANCE_FOOTER}
     </div>
   )

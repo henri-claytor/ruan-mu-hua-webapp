@@ -26,7 +26,7 @@ export default function ReportHeaderBlock({ trades }: Props) {
   const analysisDate = fmtAnalysisDate(new Date())
 
   return (
-    <div className="border-b border-base pb-4">
+    <div id="performance-report-header" className="border-b border-base pb-4">
       <h1 className="font-serif text-h1 font-bold text-main tracking-wide">
         投資績效分析報告
       </h1>
