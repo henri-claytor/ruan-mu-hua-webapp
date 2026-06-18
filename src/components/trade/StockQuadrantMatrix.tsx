@@ -1,8 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import QuadrantBadge from '../QuadrantBadge'
-import QuadrantLegend from './QuadrantLegend'
-import { fmtMoney, fmtPct } from '../../utils/format'
+import { fmtMoney } from '../../utils/format'
 import type { StockStats, PerformanceQuadrant } from '../../lib/trade'
 import { buildStockDiagSummary, type Diagnosis } from '../../lib/diagnosis'
 
@@ -24,7 +23,7 @@ const QUADRANT_FILTER_LABELS: Record<string, string> = {
   '單向紀錄（全勝或全敗）': '單向紀錄',
 }
 
-type SortKey = 'totalPnl' | 'stockId' | 'nTrades' | 'winRate' | 'payoffRatio' | 'profitFactor' | 'pnlContribution'
+type SortKey = 'totalPnl' | 'stockId' | 'winRate' | 'payoffRatio' | 'profitFactor'
 type SortDir = 'asc' | 'desc'
 
 interface Props {
@@ -158,9 +157,8 @@ export default function StockQuadrantMatrix({ stocks, filterStockId, anchorId, d
     <div className="bg-surface rounded-2xl border border-base overflow-hidden" id={anchorId}>
       {/* Header */}
       <div className="px-6 py-4 border-b border-base">
-        <h2 className="font-serif text-h2 font-bold text-main tracking-wide">個股分析</h2>
-        <p className="text-caption text-faint mt-0.5">
-          損益比 × 獲利因子矩陣 · 共 {stocks.length} 檔個股
+        <p className="text-caption text-faint">
+          共 {stocks.length} 檔個股
           {filter !== 'ALL' && (
             <span className="text-blue-700 ml-1">
               · 已篩選：{QUADRANT_FILTER_LABELS[filter]}（{filtered.length} 檔）
@@ -197,9 +195,6 @@ export default function StockQuadrantMatrix({ stocks, filterStockId, anchorId, d
         </div>
       )}
 
-      {/* 5 象限說明圖例 */}
-      <QuadrantLegend />
-
       {/* 5 象限篩選 chips */}
       <div className="px-6 py-3 border-b border-base flex flex-wrap gap-2">
         {ALL_QUADRANTS.map((q) => {
@@ -228,26 +223,20 @@ export default function StockQuadrantMatrix({ stocks, filterStockId, anchorId, d
           <thead className="bg-elevated text-dim">
             <tr>
               <th className="px-3 py-2 text-left cursor-pointer hover:text-main" onClick={() => toggleSort('stockId')}>
-                股票{arrow('stockId')}
+                個股{arrow('stockId')}
               </th>
               <th className="px-3 py-2 text-left">分類</th>
-              <th className="px-3 py-2 text-right cursor-pointer hover:text-main" onClick={() => toggleSort('nTrades')}>
-                筆數{arrow('nTrades')}
-              </th>
               <th className="px-3 py-2 text-right cursor-pointer hover:text-main" onClick={() => toggleSort('winRate')}>
                 勝率{arrow('winRate')}
               </th>
               <th className="px-3 py-2 text-right cursor-pointer hover:text-main" onClick={() => toggleSort('payoffRatio')}>
-                損益比{arrow('payoffRatio')}
+                賠率{arrow('payoffRatio')}
               </th>
               <th className="px-3 py-2 text-right cursor-pointer hover:text-main" onClick={() => toggleSort('profitFactor')}>
                 獲利因子{arrow('profitFactor')}
               </th>
               <th className="px-3 py-2 text-right cursor-pointer hover:text-main" onClick={() => toggleSort('totalPnl')}>
                 總損益{arrow('totalPnl')}
-              </th>
-              <th className="px-3 py-2 text-right cursor-pointer hover:text-main" onClick={() => toggleSort('pnlContribution')}>
-                貢獻度{arrow('pnlContribution')}
               </th>
               <th className="px-3 py-2 text-left">診斷摘要</th>
             </tr>
@@ -268,19 +257,19 @@ export default function StockQuadrantMatrix({ stocks, filterStockId, anchorId, d
                       to={`/individual?code=${s.stockId}`}
                       className="text-blue-600 hover:underline"
                     >
-                      <span className="font-semibold">{s.stockId}</span>
+                      <span className="font-semibold">{s.stockName}</span>{' '}
+                      <span
+                        className={`text-caption ${sampleSmall ? 'text-faint' : 'text-dim'}`}
+                        title={sampleSmall ? '樣本較小，統計可信度有限' : undefined}
+                      >
+                        {s.nTrades}筆
+                      </span>
                       <br />
-                      <span className="text-caption">{s.stockName}</span>
+                      <span className="text-caption text-dim">{s.stockId}</span>
                     </Link>
                   </td>
                   <td className="px-3 py-2">
                     <QuadrantBadge quadrant={s.quadrant} compact />
-                  </td>
-                  <td
-                    className={`px-3 py-2 text-right num ${sampleSmall ? 'text-faint' : 'text-main'}`}
-                    title={sampleSmall ? '樣本較小，統計可信度有限' : undefined}
-                  >
-                    {s.nTrades}
                   </td>
                   <td className="px-3 py-2 text-right num text-main">
                     {(s.winRate * 100).toFixed(0)}%
@@ -307,9 +296,6 @@ export default function StockQuadrantMatrix({ stocks, filterStockId, anchorId, d
                   </td>
                   <td className={`px-3 py-2 text-right num ${pnlClass(s.totalPnl)}`}>
                     {fmtMoney(s.totalPnl)}
-                  </td>
-                  <td className={`px-3 py-2 text-right num ${pnlClass(s.pnlContribution)}`}>
-                    {fmtPct(s.pnlContribution)}
                   </td>
                   <td
                     className="px-3 py-2 text-caption text-dim max-w-xs"

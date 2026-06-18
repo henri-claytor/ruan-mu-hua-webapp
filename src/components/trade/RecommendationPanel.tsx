@@ -14,7 +14,9 @@ export default function RecommendationPanel({ recommendations }: Props) {
       className="bg-surface rounded-2xl border border-base p-6 space-y-4"
     >
       <div>
-        <h2 className="font-serif text-h2 font-bold text-main tracking-wide">{WORDING.recommendationTitle}</h2>
+        <h2 className="font-serif text-h2 font-bold text-main tracking-wide">
+          三、{WORDING.recommendationTitle}
+        </h2>
         <p className="text-caption text-faint mt-0.5">{WORDING.recommendationSub}</p>
       </div>
 

@@ -14,6 +14,8 @@ import TradeInputTable from '../components/trade/TradeInputTable'
 import TradeFileUpload from '../components/trade/TradeFileUpload'
 import ExportMenu from '../components/trade/ExportMenu'
 import ComplianceFooter from '../components/ComplianceFooter'
+import ReportHeaderBlock from '../components/trade/ReportHeaderBlock'
+import QuadrantLegendBlock from '../components/trade/QuadrantLegendBlock'
 
 type InputMode = 'manual' | 'csv'
 
@@ -167,28 +169,21 @@ export default function PerformancePage() {
         </div>
       )}
 
-      {/* 1. 重點觀察（移到頂部 — 結論優先） */}
-      {hasTrades && recommendations.length > 0 && (
-        <RecommendationPanel recommendations={recommendations} />
-      )}
+      {/* 報告標頭：期間 + 分析日期 */}
+      {hasTrades && <ReportHeaderBlock trades={trades} />}
 
-      {/* 2. 自動診斷面板 */}
-      {hasTrades && (
-        <div id="performance-diagnosis">
+      {/* 一、整體投資組合概覽：8 KPI grid + 整體績效評估 narrative */}
+      {performance && (
+        <div id="performance-dashboard" className="space-y-4">
+          <PortfolioPerformanceBlock performance={performance} />
           <DiagnosisPanel diagnoses={diagnoses} />
         </div>
       )}
 
-      {/* 3. 整體績效 Dashboard（總實現損益為主判斷） */}
-      {performance && (
-        <div id="performance-dashboard">
-          <PortfolioPerformanceBlock performance={performance} />
-        </div>
-      )}
-
-      {/* 4. 個股矩陣表 */}
+      {/* 二、個股賠率 vs 獲利因子分析：四象限定義 + 個股表 */}
       {stockStats.length > 0 && (
-        <div id="performance-matrix">
+        <div id="performance-matrix" className="space-y-4">
+          <QuadrantLegendBlock />
           <StockQuadrantMatrix
             stocks={stockStats}
             filterStockId={stockFilterFromUrl}
@@ -196,6 +191,11 @@ export default function PerformancePage() {
             diagnoses={diagnoses}
           />
         </div>
+      )}
+
+      {/* 三、重點觀察 */}
+      {hasTrades && recommendations.length > 0 && (
+        <RecommendationPanel recommendations={recommendations} />
       )}
 
       {/* 績效視覺化 */}
