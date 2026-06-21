@@ -64,11 +64,17 @@ export default function PortfolioPerformanceBlock({ performance: p }: Props) {
           label="總實現損益"
           value={fmtMoney(p.totalPnl)}
           tone={toneFromValue(p.totalPnl)}
+          base={
+            p.maxDrawdownPct === 0
+              ? '無回撤'
+              : `最大回撤 ${fmtMoney(p.maxDrawdown)}（${fmtPct(p.maxDrawdownPct)}）`
+          }
         />
         <KpiCard
           label="整體報酬率"
           value={fmtPct(p.overallReturn)}
           tone={toneFromValue(p.overallReturn)}
+          base={`年化 ${fmtPct(p.annualizedReturn)}`}
         />
         <KpiCard
           label="整體勝率"
