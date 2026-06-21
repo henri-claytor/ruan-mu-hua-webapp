@@ -2,6 +2,7 @@ import { useState } from 'react'
 import CumulativePnlChart from '../charts/CumulativePnlChart'
 import StockContributionBar from '../charts/StockContributionBar'
 import HoldingDaysDistribution from '../charts/HoldingDaysDistribution'
+import HoldingReturnScatter from './HoldingReturnScatter'
 import type { Trade, StockStats } from '../../lib/trade'
 
 interface Props {
@@ -45,6 +46,8 @@ export default function PerformanceCharts({ trades, stocks }: Props) {
             <StockContributionBar stocks={stocks} />
             <HoldingDaysDistribution trades={trades} />
           </div>
+
+          <HoldingReturnScatter trades={trades} />
         </div>
       )}
     </div>
