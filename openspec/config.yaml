@@ -1,0 +1,39 @@
+schema: spec-driven
+
+context: |
+  產品：獲利加速輔助系統（阮沐樺的 web-app，Vercel 部署網址 web-app-gamma-fawn.vercel.app）。
+  定位：一站式投資分析工具，分兩大類。
+    進場前評估：
+      - 個股分析：選股後自動載入月/日報酬，計算多尺度年化 EV、VaR、多尺度 Hurst 與蒙地卡羅模擬，判斷四象限。
+      - 投資組合：多支股票加權組合，計算組合 EV、VaR、Hurst 與蒙地卡羅模擬（P5/P50/P95）。
+      - 比較分析：同時選取兩支股票，並排比較 EV/勝率/賠率/VaR/Hurst，綠色高亮優勢方。
+    出場後反思：
+      - 績效分析：上傳已完成交易紀錄（CSV 或手動輸入），計算勝率、賠率、獲利因子，診斷打法與資金管理問題，可匯出 PDF/Excel 報告。
+
+  技術棧：React 19 + TypeScript + Vite + TailwindCSS v4 + react-router-dom + zustand（狀態）+ recharts（圖表）+ xlsx/jspdf+html2canvas-pro（匯出）。
+  部署：Vercel，純前端 SPA。唯一後端邏輯是 api/proxy.ts（Vercel Edge Function），只轉發 CMoney 公開資料避免瀏覽器 CORS，不含任何登入/會員機制。
+  現況：目前無登入、無會員分級、無後台管理介面、無檔案或文章發布功能。
+
+  規劃中功能（尚未實作，2026-07 與 PM 討論定案的方向）：
+    - 研究報告專區（會員限定新功能，與現有四個分析工具平行，不混在同一區塊）：
+      作者原本在群組內分享「取得的第三方研究報告」（券商/法人/研究機構出品，非作者原創，有版權疑慮），
+      之後改放這個網站，僅供登入會員檢視/下載。
+      報告原始檔規劃存放在雲端硬碟。
+      核心限制（安全要求）：雲端硬碟的真實網址絕對不能外流到瀏覽器端 —
+      不可用前端直連雲端硬碟分享連結、不可用簽名網址讓瀏覽器跳轉下載，
+      一律要走後端代理轉發（後端用 service account 向雲端硬碟 API 抓檔案 bytes，直接串流回應給瀏覽器，
+      瀏覽器全程只看到自家網域的 API 路徑）；頁面路由與 API 路由都要驗證登入 session，不能只擋頁面。
+
+  撰寫慣例：
+    - Requirement 用「系統 SHALL …」描述可觀察的行為，不描述實作細節。
+    - 沿用同作者體系下蔡明翰專案的 openspec 慣例（參考 D:\AI領域\蔡明翰\openspec\config.yaml）。
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
