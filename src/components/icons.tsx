@@ -77,4 +77,12 @@ export const Icon = {
       <polyline points="16 7 22 7 22 13" />
     </svg>
   ),
+  FileText: ({ className = '', size = 18 }: IconProps) => (
+    <svg {...base(size)} className={className}>
+      <path d="M7 3h7l5 5v13H7V3z" />
+      <path d="M14 3v5h5" />
+      <line x1="9.5" y1="12" x2="14.5" y2="12" />
+      <line x1="9.5" y1="15.5" x2="14.5" y2="15.5" />
+    </svg>
+  ),
 }

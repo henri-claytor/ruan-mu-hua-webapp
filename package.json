@@ -12,7 +12,9 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.2",
+    "google-auth-library": "^9.15.0",
     "html2canvas-pro": "^2.0.4",
+    "jose": "^5.9.6",
     "jspdf": "^4.2.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

@@ -6,11 +6,14 @@ import IndividualPage from './pages/IndividualPage'
 import PortfolioPage from './pages/PortfolioPage'
 import ComparePage from './pages/ComparePage'
 import PerformancePage from './pages/PerformancePage'
+import ReportsPage from './pages/ReportsPage'
 import { useAppStore } from './store/useAppStore'
+import { useAuthStore } from './store/useAuthStore'
 import { fetchStockList } from './lib/api'
 
 function App() {
   const setStockList = useAppStore((s) => s.setStockList)
+  const refreshAuth = useAuthStore((s) => s.refresh)
 
   // Fetch the full stock list once on app init
   useEffect(() => {
@@ -22,6 +25,11 @@ function App() {
         console.warn('Failed to fetch stock list:', err)
       })
   }, [setStockList])
+
+  // Restore login state from the session cookie once on app init
+  useEffect(() => {
+    void refreshAuth()
+  }, [refreshAuth])
 
   return (
     <BrowserRouter>
@@ -36,6 +44,7 @@ function App() {
               <Route path="/portfolio" element={<PortfolioPage />} />
               <Route path="/compare" element={<ComparePage />} />
               <Route path="/performance" element={<PerformancePage />} />
+              <Route path="/reports" element={<ReportsPage />} />
               {/* /hurst redirects to home — page has been removed */}
               <Route path="/hurst" element={<Navigate to="/" replace />} />
             </Routes>
