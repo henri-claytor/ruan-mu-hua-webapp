@@ -1,5 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { Icon } from './icons'
+import { useAuthStore, AUTH_BYPASS } from '../store/useAuthStore'
+import GoogleLoginButton from './GoogleLoginButton'
 
 const NAV_ITEMS = [
   { to: '/',            Icon: Icon.Home,           label: '首頁',     exact: true  },
@@ -7,6 +9,7 @@ const NAV_ITEMS = [
   { to: '/portfolio',   Icon: Icon.Folder,         label: '投資組合', exact: false },
   { to: '/compare',     Icon: Icon.Scale,          label: '比較分析', exact: false },
   { to: '/performance', Icon: Icon.ClipboardCheck, label: '績效分析', exact: false },
+  { to: '/reports',     Icon: Icon.FileText,       label: '報告分享', exact: false },
 ] as const
 
 interface NavItemProps {
@@ -54,6 +57,41 @@ function BottomTabLink({ to, Icon: SvgIcon, label, exact }: NavItemProps) {
   )
 }
 
+function AuthSection() {
+  const { loggedIn, email, logout } = useAuthStore()
+
+  // 開發過渡：統登尚未接，顯示中性標示，不出現登入/登出控制
+  if (AUTH_BYPASS) {
+    return (
+      <div className="px-[22px] py-3 border-t border-[rgba(201,168,76,0.13)]">
+        <p className="text-[11px] text-[#7a6a50]">統登使用者（開發預設）</p>
+      </div>
+    )
+  }
+
+  if (loggedIn) {
+    return (
+      <div className="px-[22px] py-3 border-t border-[rgba(201,168,76,0.13)]">
+        <p className="text-[11px] text-[#7a6a50] truncate mb-1.5" title={email ?? ''}>
+          {email}
+        </p>
+        <button
+          onClick={() => void logout()}
+          className="text-[11px] text-[#9a7a2e] hover:text-[#c9a84c] transition-colors"
+        >
+          登出
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-[22px] py-3 border-t border-[rgba(201,168,76,0.13)]">
+      <GoogleLoginButton />
+    </div>
+  )
+}
+
 export default function NavBar() {
   return (
     <>
@@ -70,6 +108,7 @@ export default function NavBar() {
             <SidebarLink key={item.to} {...item} />
           ))}
         </nav>
+        <AuthSection />
       </aside>
 
       {/* ── Mobile Bottom Tab Bar (<md) ── */}

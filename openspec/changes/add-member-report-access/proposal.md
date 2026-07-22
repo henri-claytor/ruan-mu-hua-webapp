@@ -31,10 +31,10 @@
   - `GET /api/reports`：回傳報告 metadata 列表（需登入）
   - `GET /api/reports/:id/view`：以 `inline` 串流回傳報告內容（PDF 或圖片，依實際檔案類型決定 `Content-Type`；需登入）
 - **新增前端路由**：`/reports`（列表頁，標題直接連到 `/api/reports/:id/view`，不設中間內頁），以及全站可見的登入入口（NavBar 加登入狀態顯示）
-- **新增依賴**：Google ID token 驗證用的函式庫（如 `google-auth-library`）、Google Drive API 用的函式庫（如 `googleapis`）、簽發/驗證 session cookie 的 JWT 函式庫（如 `jose`）
+- **新增依賴**：`google-auth-library`（驗證 Google ID token，並換取 service account 的 access token 後直接呼叫 Drive REST API，不引入完整 `googleapis` 套件）、`jose`（簽發/驗證 session cookie JWT）
 - **新增環境變數/外部設定**（需作者在 Google Cloud Console / Google Drive 完成，屬本專案外的一次性設定）：
   - Google OAuth Client ID（給前端 Google Sign-In 按鈕用）
   - Google Service Account 憑證（給後端 Drive API 用；對應的 Drive 資料夾需分享給此 service account 的 email）
   - Session cookie 簽章密鑰
 - **不影響**現有 `api/proxy.ts`（CMoney 資料代理）與四個既有分析工具的行為。
-- 部署上，`api/proxy.ts` 目前是 Edge runtime；新的 Drive 代理端點因需要 Node 專用套件（`googleapis`），需以 Node runtime 建立，兩者可並存。
+- 部署上，`api/proxy.ts` 目前是 Edge runtime；新的 Drive 代理端點因需要 Node 專用 API（`google-auth-library`、`node:stream`），需以 Node runtime 建立，兩者可並存。

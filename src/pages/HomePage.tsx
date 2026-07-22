@@ -112,6 +112,19 @@ export default function HomePage() {
         />
       </div>
 
+      {/* 會員專區 */}
+      <div className="font-serif text-[15px] font-bold text-[#9a7a2e] tracking-[2px] mb-4 u5">
+        會員專區
+      </div>
+      <div className="mb-10 u5">
+        <WideCard
+          to="/reports"
+          Icon={Icon.FileText}
+          title="報告分享"
+          desc="市場資訊交流，非投資建議。登入即可檢視，不需另外申請 Google 存取權限。"
+        />
+      </div>
+
       {/* 如何使用 */}
       <div className="bg-card2 rounded-lg p-7 border border-base u6">
         <div className="font-serif text-[13px] font-bold text-[#9a7a2e] tracking-[3px] mb-5">

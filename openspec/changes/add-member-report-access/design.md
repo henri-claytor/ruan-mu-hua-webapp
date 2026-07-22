@@ -14,7 +14,7 @@
 
 **Non-Goals:**
 - 不做付費/訂閱機制本身（目前所有登入者都視為會員）。
-- 不做報告的後台上傳介面（作者直接把檔案丟到 Google 雲端硬碟資料夾，metadata 由開發者手動維護設定檔）。
+- 不做報告的後台上傳介面（作者直接把檔案丟到 Google 雲端硬碟資料夾，網站自動列出該資料夾內容、以檔名帶出標題與日期，免改程式）。
 - 不做浮水印、下載追蹤等進階防外流機制（列入 proposal 的 Impact 之外，未來可另開 change）。
 - 不修改現有四個分析工具的行為。
 
@@ -31,24 +31,26 @@
 - **為什麼不用資料庫存 session**：專案目前沒有資料庫，Vercel serverless 每個 request 是獨立執行環境，維護記憶體 session 也留不住。Stateless JWT 符合現況，且未來要加白名單檢查時，只要在核發或驗證時多查一個 email 清單即可。
 - **會員判斷**：本次「任何驗證通過的 Google 帳號＝會員」，不做白名單過濾。**擴充點**：驗證 email 的那一行程式碼旁預留 `isAuthorized(email)` 檢查點（目前恆為 true），未來加白名單只改這一個函式。
 
-### 3. 報告存取：單一後端代理端點串流，不回傳雲端硬碟網址或檔案 ID 以外的任何連結
-- 報告 metadata（`id`、`title`、`date`、`summary`、對應的 Google Drive `fileId`）存在專案內一個設定檔（如 `api/_lib/reports.ts` 匯出的陣列），不建資料庫。
-- `GET /api/reports`：驗證 session 後，只回傳 `id/title/date/summary`，**不回傳 `fileId`**（fileId 不需要讓前端知道，前端只需要用 report `id` 打自家的 view 端點）。
+### 3. 報告存取：資料夾自動列出 + 後端代理，不回傳雲端硬碟網址或 fileId
+- **不建 metadata 設定檔、不建資料庫**：以整個 Google 雲端硬碟資料夾為報告來源（`GOOGLE_DRIVE_FOLDER_ID`）。作者只要把檔案丟進資料夾就會自動出現，新增/下架完全免改程式、免重新部署。
+- **檔名即顯示資訊**，命名規則 `日期-標題.副檔名`：日期為 `YYYYMMDD` 或 `YYYY-MM-DD`，接一個分隔符（`-`/`_`/空白）再接標題。例 `20260721-立隆電.pdf` → 日期 2026-07-21、標題「立隆電」。無日期前綴時日期欄留空、整個檔名（去副檔名）當標題。
+- `GET /api/reports`：驗證 session 後，呼叫 Drive `files.list`（`q='{folderId}' in parents and trashed=false`）取得資料夾內檔案，解析檔名後只回傳 `id(=檔名)/title/date`，**不回傳 Drive fileId**。
 - `GET /api/reports/:id/view`（唯一的檔案存取端點，不另外提供 download 端點）：
   1. 驗證 session cookie，未通過一律 401。
-  2. 用 `id` 查出對應的 Drive `fileId`（伺服器端查表，不經過前端）。
-  3. 先用 `drive.files.get({ fileId, fields: 'mimeType,name' })` 取得檔案的實際 mime type（`application/pdf` 或 `image/*`），再用 `drive.files.get({ fileId, alt: 'media' }, { responseType: 'stream' })` 向 Drive API 要檔案內容。
-  4. 把回傳的 stream 直接 pipe 到 HTTP response，`Content-Type` 用查到的實際 mime type，`Content-Disposition: inline`（讓瀏覽器直接顯示，不觸發強制下載；使用者仍可用瀏覽器內建檢視器的「另存新檔」自行下載）。
-- 前端列表頁的標題本身就是 `<a href="/api/reports/:id/view">`（新分頁開啟），不設中間的報告內頁、不做 iframe 內嵌——瀏覽器對 `/api/reports/:id/view` 這個自家網域網址直接發請求並用內建 PDF/圖片檢視器開啟，`href` 永遠是自家網域路徑，瀏覽器任何時候都看不到 Google 雲端硬碟的網址。就算 Network 面板攔到這個請求，看到的也只是自家 API URL，不是雲端硬碟連結。
-- Google 雲端硬碟資料夾維持「非公開」，只分享給 service account 的 email，這樣即使 `fileId` 外流（目前設計下也不會，因為 `/api/reports` 不回傳它），沒有 service account 憑證也無法直接存取。
+  2. 依前端傳來的 `id`（= 檔名），用 `name + parent` 雙條件查 `files.list` 取回該檔案（限定在資料夾內，也擋掉任意檔名探測）；找不到回 404。
+  3. 用 `google-auth-library` 的 `GoogleAuth` 換取 service account access token 後直接 `fetch` Drive `alt=media` 取得檔案內容（不引入完整 `googleapis` 套件）。
+  4. 把內容**完整讀入為 Buffer 再回傳**，`Content-Type` 用該檔案實際 mime type，並帶 **`Content-Length`**（Chrome PDF 檢視器需要它才肯渲染，圖片則不需要；Drive 上游不提供，故讀入後自算），`Content-Disposition: inline; filename*=...`。研究報告檔案不大（數 MB 內），完整讀入可接受。
+- 前端列表頁的標題本身就是 `<a href="/api/reports/:id/view" target="_blank">`，不設中間內頁、不做 iframe 內嵌——`href` 永遠是自家網域路徑，瀏覽器任何時候都看不到 Google 雲端硬碟的網址；Network 面板攔到的也只是自家 API URL。
+- Google 雲端硬碟資料夾維持「非公開」，只分享給 service account 的 email（唯讀）。
 
 ### 4. Runtime：Drive 代理端點用 Node runtime，不用 Edge runtime
-- `googleapis` 套件依賴 Node API，無法在 Vercel Edge runtime 執行。新的 `/api/auth/*`、`/api/reports/*` 端點都用預設 Node serverless function（不加 `export const config = { runtime: 'edge' }`），與既有的 `api/proxy.ts`（Edge）並存，兩者互不影響。
+- `google-auth-library`、`Readable.fromWeb`（`node:stream`）等依賴 Node API，無法在 Vercel Edge runtime 執行。新的 `/api/auth/*`、`/api/reports/*` 端點都用預設 Node serverless function（不加 `export const config = { runtime: 'edge' }`），與既有的 `api/proxy.ts`（Edge）並存，兩者互不影響。
+- 型別上不引入 `@vercel/node` 套件（其 transitive dependency 含多個 high/critical 已知漏洞，且專案的 `tsconfig.app.json` 本來就不含 `api/` 目錄、不會被本地型別檢查覆蓋，引入它對本地開發沒有實質檢查效益）。改在 `api/_lib/http-types.ts` 自行定義最小化的 `VercelRequest`/`VercelResponse` 型別，欄位與方法皆由 Vercel 執行環境在部署時實際提供。
 
 ## Risks / Trade-offs
 
 - **[風險] JWT session 沒有伺服器端撤銷機制**（例如作者想立即踢掉某個帳號，JWT 在過期前仍有效）→ **緩解**：session 效期設短（7 天），且未來加白名單時，`isAuthorized(email)` 檢查是在「每次 API 呼叫」都執行，不是只在登入時檢查一次，所以撤銷白名單資格會在下一次 API 呼叫就生效，不用等 JWT 過期。
-- **[風險] 報告 metadata 用設定檔維護**，新增/下架報告需要改程式碼並重新部署 → **緩解**：現階段報告數量少、更新頻率低，可接受；量大時再考慮換成簡單資料庫或 CMS，屬未來 change。
+- **[取捨] 報告來源＝整個 Drive 資料夾、以檔名帶出標題與日期**，作者需遵守命名規則（`日期-標題`），否則日期會解析錯誤或留空 → **緩解**：規則簡單，且解析錯誤只影響顯示、不影響安全；view 端點以「資料夾內 + 檔名」雙條件查檔，天然限制只能讀到資料夾內的檔案。
 - **[風險] Service Account 憑證是高權限敏感資訊**，一旦外流等於任何人都能讀該 Drive 資料夾 → **緩解**：只放在 Vercel 專案的環境變數（後端 runtime 才能讀到，不會打包進前端 bundle），絕不寫入程式碼或提交進 git。
 - **[取捨] 沒有下載追蹤/浮水印**，若報告仍被會員截圖或轉傳，本設計無法防止 → 已在 proposal 的 Non-Goals 中明列，屬於已知限制，需要時再開新 change 處理。
 
